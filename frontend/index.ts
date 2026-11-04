@@ -9,7 +9,6 @@ export { LayoutRunner } from './layout-runner';
 export { FrameScheduler } from './frame';
 export { Autosave } from './autosave';
 export { clampZoom, wheelZoomFactor } from './viewport';
-export { FullscreenController } from './fullscreen';
 export { translate, status, download } from './ui';
 import { DraftStore } from './documents';
 export const drafts = new DraftStore();

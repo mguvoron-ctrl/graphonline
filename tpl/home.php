@@ -269,8 +269,9 @@
     <div id="canvasControls" role="group" aria-label="View controls">
       <input type="text" id="CanvasSearchText" class="form-control form-control-sm hidden-phone" placeholder="⌕ <?= L('vertex_name_place_holder') ?>" list="vertexListCanvas"/>
       <button type="button" class="btn btn-outline-secondary btn-sm" id="TogglePanels" aria-expanded="true" aria-controls="navigation editorToolbar editorMessages"><span class="bi bi-chevron-up" id="TogglePanelsIcon" aria-hidden="true"></span> <span id="TogglePanelsLabel" class="hidden-phone">Hide panels</span></button>
-      <button type="button" class="btn btn-default btn-sm" id="Fullscreen" aria-label="Enter fullscreen" aria-pressed="false"><span class="bi bi-arrows-fullscreen" id="FullscreenIcon" aria-hidden="true"></span></button>
     </div>
+    <!-- Older service-worker caches still look up these IDs during startup. -->
+    <span id="Fullscreen" hidden inert aria-hidden="true"><span id="FullscreenIcon"></span></span>
     <canvas id="canvas"><?= L('browser_no_support')?></canvas>
     <div id="developerTools" class="well well-sm">
         <h4><?= L('developer_tools_title')?></h4> <span class="bi bi-arrows-fullscreen fa-fw leftTopPosition" id="devToolsZoom"></span>

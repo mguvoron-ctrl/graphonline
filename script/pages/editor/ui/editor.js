@@ -4,7 +4,6 @@ var g_ctrlPressed = false;
 function Editor(document, window) {
     let self = this;
     this.application = new Application(document, window, self);
-    this.fullscreen  = false;
     this.buttonsList = ['AddGraph', 'ConnectGraphs', 'DeleteObject', 'Default'];
     this.arrowForVertex = document.getElementById('ShowArrow');
     this.arrowForVertexTimer = null;
@@ -491,22 +490,6 @@ Editor.prototype.initButtonActions = function()
         updatePanelsButton(); resizeCanvas(); self.application.flushRender();
     };
 
-    const fullscreenButton = document.getElementById("Fullscreen");
-    self.screenController = new GraphOnline.FullscreenController(document, active => {
-        const leaving = self.fullscreen && !active;
-        self.fullscreen = active;
-        fullscreenButton.title = GraphOnline.translate(active ? "exitFullscreen" : "fullscreen");
-        fullscreenButton.setAttribute("aria-label", fullscreenButton.title);
-        fullscreenButton.setAttribute("aria-pressed", String(active));
-        document.getElementById("FullscreenIcon").className = active ? "bi bi-fullscreen-exit" : "bi bi-arrows-fullscreen";
-        if (leaving) fullscreenButton.focus({preventScroll: true});
-        requestAnimationFrame(() => { resizeCanvas(); self.application.flushRender(); });
-    }, key => GraphOnline.status(key));
-    fullscreenButton.onclick = () => {
-        userAction(self.fullscreen ? "fullscreen_off" : "fullscreen_on");
-        return self.screenController.toggle();
-    };
-
     document.getElementById("ApplyDefaultStyle").onclick = function()
     {
         userAction("select_default_style");
@@ -726,7 +709,6 @@ Editor.prototype.redraw = function() {
 Editor.prototype.OnRenderToEditor = function()
 {
     $("#CanvasMessage").css('color', this.application.style.edgeCommonStyle.strokeStyle);
-    $("#FullscreenIcon").css('color', this.application.style.edgeCommonStyle.strokeStyle);
 }
 
 Editor.prototype.createAlgorithmMenu = function()

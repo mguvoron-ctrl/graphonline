@@ -283,7 +283,7 @@
 {
     position: absolute;
     left: 4px;
-    max-width: calc(100% - 400px);
+    max-width: calc(100% - 360px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -386,7 +386,7 @@
     }
 
 @media only screen and (max-width: 650px) {
-    #CanvasMessage { max-width: calc(100% - 88px); }
+    #CanvasMessage { max-width: calc(100% - 52px); }
     #canvasSection
     {
         margin-left: 12px;

@@ -44,7 +44,7 @@ See [the modernization plan](docs/modernization.md) for implemented changes, rem
 See [performance measurements and next steps](docs/performance.md) for the current bottlenecks and `npm run benchmark` instructions.
 The “Arrange vertices” toolbar button runs the force layout in a cancellable Worker and creates one undoable operation. Matrix/import layout pins existing vertices. A circular preview stays usable if calculation fails; late results cannot overwrite an edited or replaced graph. `npm run benchmark -- --layout` also measures worker dispatch and completion separately.
 Canvas requests share one animation frame. Standard wheel/pinch events preserve the pointer anchor, Retina buffers follow CSS dimensions, and layout completion preserves a changed camera. View-only operations skip autosave serialization; legacy mutations retain a periodic audit. See [rendering and recovery details](docs/rendering.md) and `npm run benchmark:ui`.
-The editor fills the tab by default, before application JavaScript runs. The fullscreen button only controls browser fullscreen; Esc keeps the editor wide. “Hide panels” frees more canvas space and leaves a “Show tools” button on the canvas. Controls and their values are preserved, and panel visibility is independent of browser fullscreen. Browsers that deny fullscreen keep the same wide workspace with an explanation.
+The editor always fills the tab, before application JavaScript runs. There is no fullscreen or compact-view toggle. “Hide panels” frees more canvas space and leaves a “Show tools” button on the canvas. Controls and their values are preserved. The browser's own fullscreen shortcut can hide its chrome independently.
 
 # Additional steps to run from subdirectory:
 
