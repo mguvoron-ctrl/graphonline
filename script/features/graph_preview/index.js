@@ -21,7 +21,7 @@ function GraphPreview(graph, style, canvas, positionUpdateCallback)
     {
         let oldRealW = preview.getRealWidth();
         let oldRealH = preview.getRealHeight();
-        preview.canvasScale = preview.canvasScale * real_scale;
+        preview.canvasScale = GraphOnline.clampZoom(preview.canvasScale * real_scale);
         let realW = preview.getRealWidth();
         let realH = preview.getRealHeight();
         preview.canvasPosition = preview.canvasPosition.add(new Point((- oldRealW + realW) / 2, (- oldRealH + realH) / 2));
@@ -64,16 +64,9 @@ function GraphPreview(graph, style, canvas, positionUpdateCallback)
 
     this.canvas.onwheel = function (e)
     {
-        var e = window.event || e; // old IE support
-        var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-        if (delta > 0)
-        {
-            zoomFunc(one_scale);
-        }
-        else
-        {
-            zoomFunc(1.0 / one_scale);
-        }
+        const factor = GraphOnline.wheelZoomFactor(e.deltaY, e.deltaMode, e.ctrlKey);
+        if (factor === 1) return;
+        e.preventDefault(); zoomFunc(factor);
     }
 
     this.canvas.removeEventListener("touchstart", touchHandler, true);

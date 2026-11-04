@@ -67,7 +67,7 @@ SavedDialogGraphImageHandler.prototype.downloadCanvas = function(canvas) {
     }, "image/png");
 };
 SavedDialogGraphImageHandler.prototype.showWorkspace = function() {
-    this.app.stopRenderTimer(); this.app.redrawGraph(); this.downloadCanvas(this.app.canvas);
+    this.app.stopRenderTimer(); this.app.redrawGraph(false); this.app.flushRender(); this.downloadCanvas(this.app.canvas);
 };
 SavedDialogGraphImageHandler.prototype.showFullgraph = function() { this.downloadCanvas(this.app._OffscreenRedrawGraph()); };
 SavedDialogGraphImageHandler.prototype.showPrint = function() { this.downloadCanvas(this.app._PrintRedrawGraph()); };

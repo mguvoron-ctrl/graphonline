@@ -29,20 +29,30 @@ Editor.prototype.initMouseActions = function() {
         return self.application.CanvasOnMouseUp(e);
     }
 
-    this.application.canvas.onwheel = function (e)
-    {
+    let gestureScale = null, gestureAnchor = null;
+    this.application.canvas.addEventListener("wheel", function(e) {
         self.StopArrowForVertexTimer();
-        var e = window.event || e; // old IE support
-        var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-        if (delta > 0)
-        {
-            self.application.multCanvasScale(1.3, e);
-        }
-        else
-        {
-            self.application.multCanvasScale(1.0 / 1.3, e);
-        }
-    }
+        if (gestureScale !== null) { e.preventDefault(); return; }
+        const factor = GraphOnline.wheelZoomFactor(e.deltaY, e.deltaMode, e.ctrlKey);
+        if (factor === 1) return;
+        e.preventDefault();
+        self.application.multCanvasScale(factor, e);
+    }, {passive: false});
+    // Safari uses GestureEvent for trackpad pinch; avoid applying its WheelEvent twice.
+    this.application.canvas.addEventListener("gesturestart", function(e) {
+        e.preventDefault(); self.StopArrowForVertexTimer();
+        gestureScale = Number.isFinite(e.scale) && e.scale > 0 ? e.scale : 1;
+        const rect = self.application.canvas.getBoundingClientRect();
+        gestureAnchor = {clientX: Number.isFinite(e.clientX) ? e.clientX : rect.left + rect.width / 2,
+            clientY: Number.isFinite(e.clientY) ? e.clientY : rect.top + rect.height / 2};
+    }, {passive: false});
+    this.application.canvas.addEventListener("gesturechange", function(e) {
+        if (gestureScale === null || !Number.isFinite(e.scale) || e.scale <= 0) return;
+        e.preventDefault(); self.application.multCanvasScale(e.scale / gestureScale, gestureAnchor); gestureScale = e.scale;
+    }, {passive: false});
+    this.application.canvas.addEventListener("gestureend", function(e) {
+        e.preventDefault(); gestureScale = null; gestureAnchor = null;
+    }, {passive: false});
 }
 
 Editor.prototype.initKeyActions = function() {
@@ -702,7 +712,7 @@ Editor.prototype.init = function()
 }
 
 Editor.prototype.redraw = function() {
-    this.application.redrawGraph();
+    this.application.redrawGraph(false);
 }
 
 Editor.prototype.OnRenderToEditor = function()

@@ -40,6 +40,7 @@ DefaultHandler.prototype.GetSelectedVertex = function()
 DefaultHandler.prototype.MouseMove = function(pos) 
 {
   if (this.dragObject) {
+    if (this.dragObject.position.x === pos.x && this.dragObject.position.y === pos.y) return;
     if (!this.saveUndo) {
       this.app.PushToStack("Move");
       this.saveUndo = true;
@@ -47,9 +48,11 @@ DefaultHandler.prototype.MouseMove = function(pos)
 
     this.dragObject.position.x = pos.x;
     this.dragObject.position.y = pos.y;
+    this.app.MarkDocumentChanged(false);
     this.needRedraw = true;
   }
   else if (this.selectedObjects.length > 0 && this.pressed && !this.groupingSelect) {
+    if (pos.x === this.prevPosition.x && pos.y === this.prevPosition.y) return;
     if (!this.saveUndo) {
       this.app.PushToStack("Move");
       this.saveUndo = true;
@@ -63,6 +66,7 @@ DefaultHandler.prototype.MouseMove = function(pos)
       }
     }
     this.prevPosition = pos;
+    this.app.MarkDocumentChanged(false);
     this.needRedraw = true;
   }
   else if (this.pressed) {

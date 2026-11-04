@@ -71,30 +71,25 @@ function InvertColor(hex) {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+const graphCanvasMetrics = new WeakMap();
 function setDPIForCanvas(canvas, width, height) {
     const dpr = window.devicePixelRatio || 1;
-
-    canvas.width  = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-
-    if (dpr != 1)
-    {
-      canvas.style.width  = Math.round(width) + "px";
-      canvas.style.height = Math.round(height) + "px";
-    }
-
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    width = Math.max(1, Math.round(width)); height = Math.max(1, Math.round(height));
+    const bitmapWidth = Math.round(width * dpr), bitmapHeight = Math.round(height * dpr);
+    // Always set CSS dimensions, including a transition from Retina to a 1x screen.
+    canvas.style.width = width + "px"; canvas.style.height = height + "px";
+    if (canvas.width !== bitmapWidth) canvas.width = bitmapWidth;
+    if (canvas.height !== bitmapHeight) canvas.height = bitmapHeight;
+    graphCanvasMetrics.set(canvas, {width, height});
+    canvas.getContext("2d").setTransform(bitmapWidth / width, 0, 0, bitmapHeight / height, 0, 0);
 }
 
 function getCanvasLogicWidth(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    return canvas.width / dpr;
+    return graphCanvasMetrics.get(canvas)?.width ?? canvas.width;
 }
 
 function getCanvasLogicHeight(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    return canvas.height / dpr;
+    return graphCanvasMetrics.get(canvas)?.height ?? canvas.height;
 }
 
 function getLogicToCanvasSize(size) {

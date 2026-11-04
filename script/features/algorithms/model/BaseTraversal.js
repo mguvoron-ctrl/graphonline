@@ -34,7 +34,7 @@ BaseTraversal.prototype.selectVertex = function(vertex) {
         const prefix = steps.slice(0, position + 1);
         this.visited = prefix.map(visit => visit.vertex);
         this.edges = prefix.filter(visit => visit.edge).map(visit => visit.edge);
-        this.app.redrawGraph();
+        this.app.redrawGraph(false);
         const state = document.getElementById("traversal-state");
         if (state) state.textContent = (position + 1) + "/" + steps.length + ": " + this.visited.map(v => v.mainText).join(" → ");
         const play = document.getElementById("traversal-play");

@@ -22,11 +22,14 @@ var GraphOnline = (() => {
   var index_exports = {};
   __export(index_exports, {
     AlgorithmRunner: () => AlgorithmRunner,
+    Autosave: () => Autosave,
     DraftStore: () => DraftStore,
+    FrameScheduler: () => FrameScheduler,
     GraphIndex: () => GraphIndex,
     History: () => History,
     LayoutRunner: () => LayoutRunner,
     Timeline: () => Timeline,
+    clampZoom: () => clampZoom,
     download: () => download,
     drafts: () => drafts,
     escapeHtml: () => escapeHtml,
@@ -35,7 +38,8 @@ var GraphOnline = (() => {
     parseGraphML: () => parseGraphML,
     status: () => status,
     translate: () => translate,
-    traversalSteps: () => traversalSteps
+    traversalSteps: () => traversalSteps,
+    wheelZoomFactor: () => wheelZoomFactor
   });
 
   // frontend/history.ts
@@ -577,6 +581,94 @@ var GraphOnline = (() => {
       task.reject(new DOMException("Cancelled", "AbortError"));
     }
   };
+
+  // frontend/frame.ts
+  var FrameScheduler = class {
+    constructor(render, request = requestAnimationFrame, cancel = cancelAnimationFrame) {
+      this.render = render;
+      this.request = request;
+      this.cancel = cancel;
+    }
+    frame;
+    invalidate() {
+      if (this.frame !== void 0) return;
+      this.frame = this.request(() => {
+        this.frame = void 0;
+        this.render();
+      });
+    }
+    flush() {
+      if (this.frame === void 0) return;
+      this.cancel(this.frame);
+      this.frame = void 0;
+      this.render();
+    }
+  };
+
+  // frontend/autosave.ts
+  var Autosave = class {
+    constructor(read, write, onError, delay = 400) {
+      this.read = read;
+      this.write = write;
+      this.onError = onError;
+      this.delay = delay;
+    }
+    revision = 0;
+    savedRevision = -1;
+    snapshot;
+    timer;
+    writing;
+    get dirty() {
+      return this.revision !== this.savedRevision;
+    }
+    get currentRevision() {
+      return this.revision;
+    }
+    changed() {
+      this.revision++;
+    }
+    notePersisted(snapshot) {
+      this.snapshot = { ...snapshot };
+    }
+    schedule() {
+      if (!this.dirty) return;
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => void this.flush().catch(this.onError), this.delay);
+    }
+    async flush(force = false) {
+      clearTimeout(this.timer);
+      this.timer = void 0;
+      if (this.writing) {
+        await this.writing;
+        return this.flush(force);
+      }
+      if (!force && !this.dirty) return;
+      const revision = this.revision, snapshot = this.read();
+      if (snapshot.xml === this.snapshot?.xml && snapshot.reference === this.snapshot.reference) {
+        this.savedRevision = revision;
+        return;
+      }
+      this.writing = this.write(snapshot);
+      try {
+        await this.writing;
+        this.notePersisted(snapshot);
+        this.savedRevision = revision;
+      } finally {
+        this.writing = void 0;
+      }
+    }
+  };
+
+  // frontend/viewport.ts
+  function clampZoom(scale) {
+    if (!Number.isFinite(scale) || scale <= 0) throw new RangeError("Invalid zoom");
+    return Math.min(20, Math.max(0.01, scale));
+  }
+  function wheelZoomFactor(deltaY, mode = 0, pinch = false) {
+    if (!Number.isFinite(deltaY) || deltaY === 0) return 1;
+    const pixels = deltaY * (mode === 1 ? 16 : mode === 2 ? 800 : 1);
+    return Math.exp(-Math.max(-100, Math.min(100, pixels)) * (pinch ? 0.01 : 2e-3));
+  }
 
   // frontend/ui.ts
   var messages = {

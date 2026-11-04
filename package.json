@@ -11,6 +11,7 @@
     "test": "node --test --test-isolation=none tests/unit/*.test.cjs",
     "test:browser": "playwright test",
     "benchmark": "node tools/benchmark.mjs",
+    "benchmark:ui": "node tools/benchmark-ui.mjs",
     "check": "npm run typecheck && npm run build && npm test"
   },
   "devDependencies": {

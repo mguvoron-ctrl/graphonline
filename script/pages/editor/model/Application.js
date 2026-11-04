@@ -8,6 +8,7 @@ var globalApplication = null;
 function Application(document, window, listener)
 {
     this.document = document;
+    this.window = window;
     this.listener = listener;
     this.UseGraph(new Graph());
     this.initCanvas();
@@ -60,6 +61,9 @@ function Application(document, window, listener)
     this.lastGraphName = ""; // It could be last loaded or last saved graph.
 
     this.lastUsedGraphs = [];
+    this.document.addEventListener("visibilitychange", () => {
+        if (this.document.visibilityState === "hidden" && this.ready) this.flushAutoSave(true).catch(() => {});
+    });
 };
 
 // Current dragged object.
@@ -100,23 +104,26 @@ Application.prototype.getMousePos = function(canvas, e)
 
     /// as mouse event coords are relative to document you need to
     /// subtract the element's left and top position:
-    return {x: (e.clientX - rect.left) / this.canvasScale - this.canvasPosition.x, y: (e.clientY - rect.top) / this.canvasScale - this.canvasPosition.y};
+    return {x: (e.clientX - rect.left) * getCanvasLogicWidth(canvas) / rect.width / this.canvasScale - this.canvasPosition.x,
+        y: (e.clientY - rect.top) * getCanvasLogicHeight(canvas) / rect.height / this.canvasScale - this.canvasPosition.y};
 }
 
-Application.prototype.redrawGraph = function()
-{
-    this.scheduleAutoSave();
-    if (!this.isTimerRender)
-    {
-        this.listener.OnRenderToEditor();
-
-        this._redrawGraphInWindow();
-        
-        this.GraphTypeChanged();
-
-        //this.style.Print();
-    }
-}
+Application.prototype.redrawGraph = function(documentChanged = true) {
+    // Unknown legacy callers remain conservative; view-only paths opt out explicitly.
+    if (documentChanged) this.MarkDocumentChanged();
+    if (!this.frameRenderer) this.frameRenderer = new GraphOnline.FrameScheduler(() => this.RenderFrame(),
+        callback => this.window.requestAnimationFrame(callback), id => this.window.cancelAnimationFrame(id));
+    this.frameRenderer.invalidate();
+};
+Application.prototype.RenderFrame = function() {
+    if (this.graphTypeDirty) { this.graphTypeDirty = false; this.GraphTypeChanged(); }
+    if (!this.isTimerRender) { this.listener.OnRenderToEditor(); this._redrawGraphInWindow(); }
+};
+Application.prototype.flushRender = function() { if (this.frameRenderer) this.frameRenderer.flush(); };
+Application.prototype.MarkDocumentChanged = function(graphTypeChanged = true) {
+    if (graphTypeChanged) this.graphTypeDirty = true;
+    this.getAutosave().changed(); this.scheduleAutoSave();
+};
 
 Application.prototype.redrawGraphTimer = function()
 {
@@ -204,13 +211,15 @@ Application.prototype.redrawGraphTimer = function()
 
 Application.prototype.setupHighQualityRendering = function(context)
 {
-    context.imageSmoothingEnabled = false; // or false for pixel art
+    context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
 }
 
 Application.prototype._redrawGraphInWindow = function()
 {
     var context = this.canvas.getContext('2d');
+    context.setTransform(this.canvas.width / getCanvasLogicWidth(this.canvas), 0, 0,
+        this.canvas.height / getCanvasLogicHeight(this.canvas), 0, 0);
 
     this.setupHighQualityRendering(context);
     
@@ -315,8 +324,9 @@ Application.prototype.updateRenderPathLength = function()
 
 Application.prototype.startRenderTimer = function()
 {
+    this.stopRenderTimer();
     this.updateRenderPathLength();
-    this.renderTimer = window.setInterval(function(){globalApplication.redrawGraphTimer();}, 50);
+    this.renderTimer = window.setInterval(() => this.redrawGraphTimer(), 50);
     this.isTimerRender = true;
     this.renderPathLoops = 0;
 }
@@ -328,6 +338,7 @@ Application.prototype.stopRenderTimer = function()
         window.clearInterval(this.renderTimer);
         this.isTimerRender = false;
         this.renderPathLoops = 0;
+        this.redrawGraph(false);
     }
 }
 
@@ -508,6 +519,7 @@ Application.prototype.updateMessage = function()
 
 Application.prototype.CanvasOnMouseMove  = function(e)
 {
+    const previousMessage = this.handler.GetMessage();
 	// X,Y position.
 	var pos = this.getMousePos(this.canvas, e);
 
@@ -515,10 +527,9 @@ Application.prototype.CanvasOnMouseMove  = function(e)
 	if (this.handler.IsNeedRedraw())
 	{
 		this.handler.RestRedraw();
-		this.redrawGraph();
+		this.redrawGraph(!(this.handler instanceof DefaultHandler || this.handler instanceof AlgorithmGraphHandler));
 	}
-
-    this.updateMessage();
+    if (this.handler.GetMessage() !== previousMessage) this.updateMessage();
 }
 
 Application.prototype.CanvasOnMouseDown = function(e)
@@ -532,7 +543,7 @@ Application.prototype.CanvasOnMouseDown = function(e)
 	if (this.handler.IsNeedRedraw())
 	{
 		this.handler.RestRedraw();
-		this.redrawGraph();
+		this.redrawGraph(!(this.handler instanceof DefaultHandler || this.handler instanceof AlgorithmGraphHandler));
 	}
 
     this.updateMessage();
@@ -550,18 +561,20 @@ Application.prototype.CanvasOnMouseUp = function(e)
 	if (this.handler.IsNeedRedraw())
 	{
 		this.handler.RestRedraw();
-		this.redrawGraph();
+		this.redrawGraph(!(this.handler instanceof DefaultHandler || this.handler instanceof AlgorithmGraphHandler));
 	}
 
     this.updateMessage();
 }
 
 Application.prototype.multCanvasScale = function(factor, zoom_to=null)
-{  
+{
+    if (!Number.isFinite(factor) || factor <= 0) return;
+    const scale = GraphOnline.clampZoom(this.canvasScale * factor);
     if (zoom_to) // zoom on cursor
     {
         var pos1 = this.getMousePos(this.canvas, zoom_to); // mouse position before zooming
-        this.canvasScale *= factor;
+        this.canvasScale = scale;
         var pos2 = this.getMousePos(this.canvas, zoom_to); // mouse position after zooming
 
         this.canvasPosition = this.canvasPosition.add(new Point(pos2.x-pos1.x, pos2.y-pos1.y));
@@ -570,16 +583,17 @@ Application.prototype.multCanvasScale = function(factor, zoom_to=null)
     {
         var oldRealWidth = this.GetRealWidth();
         var oldRealHeight = this.GetRealHeight();
-        this.canvasScale *= factor;
+        this.canvasScale = scale;
         
         this.canvasPosition = this.canvasPosition.add(new Point((this.GetRealWidth()  - oldRealWidth) / 2.0, (this.GetRealHeight() - oldRealHeight) / 2.0));
     }
     
-    this.redrawGraph();
+    this.redrawGraph(false);
 }
 
 Application.prototype.setCanvasScale = function(factor)
 {
+    factor = GraphOnline.clampZoom(factor);
     var oldRealWidth = this.GetRealWidth();
     var oldRealHeight = this.GetRealHeight();
     
@@ -588,13 +602,13 @@ Application.prototype.setCanvasScale = function(factor)
     this.canvasPosition = this.canvasPosition.add(new Point((this.GetRealWidth()  - oldRealWidth) / 2.0,
                                                             (this.GetRealHeight() - oldRealHeight) / 2.0));
     
-    this.redrawGraph();
+    this.redrawGraph(false);
 }
 
 Application.prototype.onCanvasMove = function(point)
 {
     this.canvasPosition = this.canvasPosition.add(point.multiply(1 / this.canvasScale));
-    this.redrawGraph();
+    this.redrawGraph(false);
 }
 
 Application.prototype.AddNewVertex = function(vertex)
@@ -713,14 +727,14 @@ Application.prototype.SetHandler = function(newHandler)
     this.handler = newHandler;
     if (newHandler instanceof AlgorithmGraphHandler) newHandler.UpdateResultAndMessage();
 
-    this.ToDefaultStateAndRedraw();
+    this.ToDefaultStateAndRedraw(!(newHandler instanceof DefaultHandler || newHandler instanceof AlgorithmGraphHandler));
 }
 
-Application.prototype.ToDefaultStateAndRedraw = function()
+Application.prototype.ToDefaultStateAndRedraw = function(documentChanged = true)
 {
     this.setRenderPath([]);
 	this.updateMessage();
-	this.redrawGraph();
+	this.redrawGraph(documentChanged);
 }
 
 Application.prototype.getParameterByName = function (name)
@@ -819,6 +833,7 @@ Application.prototype.onPostLoadEvent = async function()
                     this.LoadGraphFromString(draft.xml);
                     this.lastGraphName = draft.reference;
                     this.lastSavedAutoSave = draft.xml;
+                    this.getAutosave().notePersisted({xml: draft.xml, reference: draft.reference});
                 } else if (this.hasAutoSave() && this.getAutoSaveCookie() !== "local") {
                     await this.getAutoSaveGraph(xml => this.LoadGraphFromString(xml));
                 } else {
@@ -970,6 +985,7 @@ Application.prototype.UseGraph = function(graph) {
     if (this.graph) this.graph.onLayoutRequested = null;
     this.graph = graph;
     graph.onLayoutRequested = input => this.RequestLayout(input);
+    this.MarkDocumentChanged();
 };
 
 Application.prototype.CancelLayout = function() {
@@ -982,6 +998,7 @@ Application.prototype.CancelLayout = function() {
 Application.prototype.RequestLayout = function(input) {
     this.CancelLayout();
     const graph = this.graph, generation = this.layoutGeneration;
+    const camera = {scale: this.canvasScale, x: this.canvasPosition.x, y: this.canvasPosition.y};
     const vertices = graph.vertices.map(vertex => ({vertex, id: vertex.id, x: vertex.position.x, y: vertex.position.y, diameter: vertex.model.diameter}));
     const edges = graph.edges.map(edge => ({edge, from: edge.vertex1, to: edge.vertex2}));
     const unchanged = () => this.graph === graph && graph.vertices.length === vertices.length && graph.edges.length === edges.length
@@ -1006,7 +1023,8 @@ Application.prototype.RequestLayout = function(input) {
             const point = byId.get(String(state.id));
             if (point) state.vertex.position = new Point(point.x, point.y);
         }
-        this.AutoAdjustViewport(); this.redrawGraph();
+        if (this.canvasScale === camera.scale && this.canvasPosition.x === camera.x && this.canvasPosition.y === camera.y) this.AutoAdjustViewport();
+        this.redrawGraph();
         return true;
     }).catch(error => {
         if (generation === this.layoutGeneration && error.name !== "AbortError") GraphOnline.status("layoutError", true);
@@ -1094,6 +1112,7 @@ Application.prototype.SaveGraphOnDisk = function (callback)
     return this.saveAutoSave(xml).then(() => DiskSaveLoad.SaveGraphOnDisk(name, xml)).then(() => {
         this.savedGraphName = name;
         this.lastGraphName = name;
+        this.MarkDocumentChanged(false);
         document.cookie = "graphName=" + name + ";path=/;SameSite=Lax";
         this.PushLastUsedGraph(name);
         GraphOnline.status("published");
@@ -1108,6 +1127,7 @@ Application.prototype.SaveGraphImageOnDisk = function (showDialogCallback)
                           
     this.stopRenderTimer();
     this.redrawGraph();
+    this.flushRender();
                           
     var bbox = this.graph.getGraphBBox();
     
@@ -1321,35 +1341,24 @@ Application.prototype.SetDefaultTransformations = function()
     this.canvasPosition = new Point(0, 0);
 }
 
-Application.prototype.AutoAdjustViewport = function()
-{
-    graphBBox  = this.graph.getGraphBBox();
-    bboxCenter = graphBBox.center();
-    bboxSize   = graphBBox.size();
-                          
-    if (bboxSize.length() > 0)
-    {
-        // Setup size
-        if (bboxSize.x > this.GetRealWidth() || bboxSize.y > this.GetRealHeight())
-        {
-            this.canvasScale = Math.min(this.GetRealWidth() / bboxSize.x, this.GetRealHeight() / bboxSize.y);
-        }
-                          
-        // Setup position.
-        if (graphBBox.minPoint.x < 0.0 || graphBBox.minPoint.y < 0.0 ||
-            graphBBox.maxPoint.x > this.GetRealWidth() || graphBBox.maxPoint.y > this.GetRealHeight())
-        {
-            // Move center.
-            this.canvasPosition  = graphBBox.minPoint.inverse();
-        }
+Application.prototype.AutoAdjustViewport = function() {
+    const bbox = this.graph.getGraphBBox(), size = bbox.size();
+    if (size.length() <= 0) return;
+    if (size.x > this.GetRealWidth() || size.y > this.GetRealHeight()) {
+        // Fit to screen pixels, independent of the previous zoom level.
+        this.canvasScale = GraphOnline.clampZoom(Math.min(getCanvasLogicWidth(this.canvas) / size.x,
+            getCanvasLogicHeight(this.canvas) / size.y));
     }
-}
-                          
+    if (bbox.minPoint.x < 0 || bbox.minPoint.y < 0 || bbox.maxPoint.x > this.GetRealWidth() || bbox.maxPoint.y > this.GetRealHeight()) {
+        this.canvasPosition = bbox.minPoint.inverse();
+    }
+};
+
 Application.prototype.OnAutoAdjustViewport = function()
 {
     this.SetDefaultTransformations();
     this.AutoAdjustViewport();
-    this.redrawGraph();
+    this.redrawGraph(false);
 }
                           
 Application.prototype.getAlgorithmNames = function()
@@ -1842,11 +1851,21 @@ Application.prototype.isAutoSaveGraphName = function (str)
     return str.length > 0 && str.length <= this.graphNameLength + this.styliedGraphNamePostfix.length;
 }
 
-Application.prototype.saveAutoSave = function(graphXML, callback) {
-    return GraphOnline.drafts.save({xml: graphXML, reference: this.lastGraphName, updatedAt: Date.now()}).then(() => {
+Application.prototype.getAutosave = function() {
+    if (!this.autosave) this.autosave = new GraphOnline.Autosave(
+        () => ({xml: this.DocumentXML(), reference: this.lastGraphName || ""}),
+        snapshot => this.saveAutoSave(snapshot.xml, undefined, snapshot.reference),
+        () => GraphOnline.status("storageError", true));
+    return this.autosave;
+};
+Application.prototype.saveAutoSave = function(graphXML, callback, reference = this.lastGraphName) {
+    reference = reference || "";
+    const revision = this.getAutosave().currentRevision;
+    return GraphOnline.drafts.save({xml: graphXML, reference, updatedAt: Date.now()}).then(() => {
         this.lastSavedAutoSave = graphXML;
-        this.setAutoSaveCookie("local");
-        GraphOnline.status("saved");
+        this.getAutosave().notePersisted({xml: graphXML, reference});
+        this.setAutoSaveCookie("local", reference);
+        GraphOnline.status(revision === this.getAutosave().currentRevision ? "saved" : "saving");
         if (callback) callback();
     }).catch(error => { GraphOnline.status("storageError", true); throw error; });
 };
@@ -1854,12 +1873,11 @@ Application.prototype.DocumentXML = function() {
     return this.handler instanceof AlgorithmGraphHandler ? this.handler.originalDocument : this.graph.SaveToXML(this.SaveUserSettings());
 };
 Application.prototype.scheduleAutoSave = function() {
-    if (!this.ready) return;
-    clearTimeout(this.autoSaveTimeout);
-    this.autoSaveTimeout = setTimeout(() => {
-        const xml = this.DocumentXML();
-        if (xml !== this.lastSavedAutoSave) this.saveAutoSave(xml).catch(() => {});
-    }, 400);
+    if (this.ready) this.getAutosave().schedule();
+};
+Application.prototype.flushAutoSave = function(force = false) {
+    if (!this.ready) return Promise.resolve();
+    return this.getAutosave().flush(force).catch(error => { GraphOnline.status("storageError", true); throw error; });
 };
 
 Application.prototype.hasAutoSave = function ()
@@ -1895,14 +1913,14 @@ Application.prototype.removeAutosave = function(callback) {
     if (callback) callback();
 };
 
-Application.prototype.setAutoSaveCookie = function (value)
+Application.prototype.setAutoSaveCookie = function (value, reference = this.lastGraphName)
 {
     var now = new Date();
     var time = now.getTime();
     var expireTime = time + 1000 * 3600 * 24 * 7; // In a week.
     now.setTime(expireTime);
     document.cookie = 'auto_save=' + value + ';expires=' + now.toUTCString() + ';path=/';
-    document.cookie = 'auto_save_ref_graph=' + this.lastGraphName + ';expires=' + now.toUTCString() + ';path=/';
+    document.cookie = 'auto_save_ref_graph=' + reference + ';expires=' + now.toUTCString() + ';path=/';
 }
 
 Application.prototype.removeAutoSaveCookie = function (value)
@@ -1977,7 +1995,9 @@ Application.prototype.showSelectGraphDialog = function(graphName)
 
 Application.prototype.startAutoSaveTimer = function() {
     clearInterval(this.autosaveTimer);
-    this.autosaveTimer = setInterval(() => this.scheduleAutoSave(), 10000);
+    // Direct legacy mutations without redraw are still audited periodically.
+    this.autosaveTimer = setInterval(() => this.flushAutoSave(true).catch(() => {}), 10000);
+    this.scheduleAutoSave();
 };
 
 Application.prototype.onSelectOgirinalGraph = function(graphName)

@@ -43,6 +43,7 @@ PmWiki and CKEditor are legacy components requiring separate upgrade and content
 See [the modernization plan](docs/modernization.md) for implemented changes, remaining migrations, and validation scope.
 See [performance measurements and next steps](docs/performance.md) for the current bottlenecks and `npm run benchmark` instructions.
 The “Arrange vertices” toolbar button runs the force layout in a cancellable Worker and creates one undoable operation. Matrix/import layout pins existing vertices. A circular preview stays usable if calculation fails; late results cannot overwrite an edited or replaced graph. `npm run benchmark -- --layout` also measures worker dispatch and completion separately.
+Canvas requests share one animation frame. Standard wheel/pinch events preserve the pointer anchor, Retina buffers follow CSS dimensions, and layout completion preserves a changed camera. View-only operations skip autosave serialization; legacy mutations retain a periodic audit. See [rendering and recovery details](docs/rendering.md) and `npm run benchmark:ui`.
 
 # Additional steps to run from subdirectory:
 
