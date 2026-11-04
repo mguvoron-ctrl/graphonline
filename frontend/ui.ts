@@ -1,7 +1,10 @@
 const messages: Record<string, [string, string]> = {
   fullscreen: ['На весь экран', 'Enter fullscreen'],
+  hidePanels: ['Свернуть панели', 'Hide panels'],
+  showPanels: ['Показать инструменты', 'Show tools'],
+  viewControls: ['Управление видом', 'View controls'],
   exitFullscreen: ['Выйти из полноэкранного режима', 'Exit fullscreen'],
-  fullscreenFallback: ['Браузер не разрешил полный экран. Редактор расширен на всю вкладку.', 'The browser did not allow fullscreen. The editor fills this tab.'],
+  fullscreenUnavailable: ['Браузер не разрешил скрыть свои панели. Редактор остаётся на всю ширину вкладки.', 'The browser did not allow fullscreen. The editor still fills the tab.'],
   fullscreenExitError: ['Для выхода из полноэкранного режима нажмите Esc.', 'Press Esc to leave fullscreen.'],
   layout: ['Расположить вершины', 'Arrange vertices'],
   layoutRunning: ['Расставляем вершины…', 'Arranging vertices…'],

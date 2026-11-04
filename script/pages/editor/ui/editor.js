@@ -475,6 +475,22 @@ Editor.prototype.initButtonActions = function()
         return;
     }
     
+    const panelsButton = document.getElementById("TogglePanels");
+    document.getElementById("canvasControls").setAttribute("aria-label", GraphOnline.translate("viewControls"));
+    const updatePanelsButton = () => {
+        const hidden = document.documentElement.classList.contains("graphonline-panels-hidden");
+        panelsButton.title = GraphOnline.translate(hidden ? "showPanels" : "hidePanels");
+        panelsButton.setAttribute("aria-label", panelsButton.title);
+        panelsButton.setAttribute("aria-expanded", String(!hidden));
+        document.getElementById("TogglePanelsLabel").textContent = panelsButton.title;
+        document.getElementById("TogglePanelsIcon").className = hidden ? "bi bi-chevron-down" : "bi bi-chevron-up";
+    };
+    updatePanelsButton();
+    panelsButton.onclick = () => {
+        document.documentElement.classList.toggle("graphonline-panels-hidden");
+        updatePanelsButton(); resizeCanvas(); self.application.flushRender();
+    };
+
     const fullscreenButton = document.getElementById("Fullscreen");
     self.screenController = new GraphOnline.FullscreenController(document, active => {
         const leaving = self.fullscreen && !active;
@@ -698,6 +714,7 @@ Editor.prototype.init = function()
     this.application.onPostLoadEvent();
     this.messageObserver = new ResizeObserver(() => requestAnimationFrame(() => resizeCanvas()));
     this.messageObserver.observe(document.getElementById("message"));
+    this.messageObserver.observe(document.getElementById("canvasSection"));
 
     this.initAlgorithmList();
 }

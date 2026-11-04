@@ -371,3 +371,28 @@ h2 {
     font-size: 12px;
   }
 }
+/* The graph editor always uses the full workspace; browser fullscreen is independent. */
+html.graphonline-editor,
+html.graphonline-editor body {
+  min-height: 100%;
+  background: #fff;
+}
+html.graphonline-editor #mainContainer {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+html.graphonline-editor #h1Header,
+html.graphonline-editor #h1Text,
+html.graphonline-editor #footer,
+html.graphonline-editor #bottom_adv,
+html.graphonline-editor #bottom_info {
+  display: none !important;
+}
+html.graphonline-editor.graphonline-panels-hidden #navigation,
+html.graphonline-editor.graphonline-panels-hidden #editorToolbar,
+html.graphonline-editor.graphonline-panels-hidden #editorMessages {
+  display: none !important;
+}

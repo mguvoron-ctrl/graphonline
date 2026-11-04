@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= LANG?>" dir="ltr">
+<html lang="<?= LANG?>" dir="ltr"<?= !empty($g_config['editorLayout']) ? ' class="graphonline-editor"' : '' ?>>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=<?= $g_config['charset']?>" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">

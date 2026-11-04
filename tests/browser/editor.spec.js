@@ -301,6 +301,7 @@ for (const language of ['ru','en','fr','de','el','es','nl','sv','pt','bg','ch','
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await open(page,language==='ru'?'/':`/${language}/`);
     expect(await page.locator('html').getAttribute('lang')).toBe(language);
+    await expect(page.locator('html')).toHaveClass(/graphonline-editor/);
     expect(errors).toEqual([]);
   });
 }
