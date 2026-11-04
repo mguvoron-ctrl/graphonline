@@ -998,7 +998,8 @@ Application.prototype.CancelLayout = function() {
 Application.prototype.RequestLayout = function(input) {
     this.CancelLayout();
     const graph = this.graph, generation = this.layoutGeneration;
-    const camera = {scale: this.canvasScale, x: this.canvasPosition.x, y: this.canvasPosition.y};
+    const camera = {scale: this.canvasScale, x: this.canvasPosition.x, y: this.canvasPosition.y,
+        width: getCanvasLogicWidth(this.canvas), height: getCanvasLogicHeight(this.canvas)};
     const vertices = graph.vertices.map(vertex => ({vertex, id: vertex.id, x: vertex.position.x, y: vertex.position.y, diameter: vertex.model.diameter}));
     const edges = graph.edges.map(edge => ({edge, from: edge.vertex1, to: edge.vertex2}));
     const unchanged = () => this.graph === graph && graph.vertices.length === vertices.length && graph.edges.length === edges.length
@@ -1023,7 +1024,8 @@ Application.prototype.RequestLayout = function(input) {
             const point = byId.get(String(state.id));
             if (point) state.vertex.position = new Point(point.x, point.y);
         }
-        if (this.canvasScale === camera.scale && this.canvasPosition.x === camera.x && this.canvasPosition.y === camera.y) this.AutoAdjustViewport();
+        if (this.canvasScale === camera.scale && this.canvasPosition.x === camera.x && this.canvasPosition.y === camera.y
+            && getCanvasLogicWidth(this.canvas) === camera.width && getCanvasLogicHeight(this.canvas) === camera.height) this.AutoAdjustViewport();
         this.redrawGraph();
         return true;
     }).catch(error => {

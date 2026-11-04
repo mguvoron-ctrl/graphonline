@@ -273,6 +273,31 @@
     z-index: 10;
 }
 
+html.graphonline-fullscreen,
+html.graphonline-fullscreen body
+{
+    min-height: 100%;
+    background: #fff;
+}
+
+html.graphonline-fullscreen #mainContainer
+{
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+html.graphonline-fullscreen #h1Header,
+html.graphonline-fullscreen #h1Text,
+html.graphonline-fullscreen #footer,
+html.graphonline-fullscreen #bottom_adv,
+html.graphonline-fullscreen #bottom_info
+{
+    display: none !important;
+}
+
 #CanvasMessage
 {
     position: absolute;

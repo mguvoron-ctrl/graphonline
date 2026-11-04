@@ -16,6 +16,9 @@ function resizeCanvas()
   let height_float = $(window).height() - document.getElementById('canvas').offsetTop - 
     (adv && $("#bottom_info").css("display") === 'block' ? document.getElementById('bottom_info').offsetHeight : 0) - 
     ($("#footer").css("display") === 'block' ? document.getElementById('footer').offsetHeight : 0) - offset;
+  if (document.documentElement.classList.contains('graphonline-fullscreen')) {
+    height_float = window.innerHeight - canvas.getBoundingClientRect().top - 8;
+  }
 
   setDPIForCanvas(canvas, Math.max(1, width_float), Math.max(200, height_float));
 

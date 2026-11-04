@@ -1,4 +1,8 @@
 const messages: Record<string, [string, string]> = {
+  fullscreen: ['На весь экран', 'Enter fullscreen'],
+  exitFullscreen: ['Выйти из полноэкранного режима', 'Exit fullscreen'],
+  fullscreenFallback: ['Браузер не разрешил полный экран. Редактор расширен на всю вкладку.', 'The browser did not allow fullscreen. The editor fills this tab.'],
+  fullscreenExitError: ['Для выхода из полноэкранного режима нажмите Esc.', 'Press Esc to leave fullscreen.'],
   layout: ['Расположить вершины', 'Arrange vertices'],
   layoutRunning: ['Расставляем вершины…', 'Arranging vertices…'],
   layoutCancel: ['Остановить раскладку', 'Stop layout'],

@@ -267,7 +267,7 @@
     
     <span class="bi bi-arrow-down-left icon-300" id="ShowArrow"></span>
     
-    <button type="button" class="btn btn-default btn-sm hidden-phone" id="Fullscreen"><span class="bi bi-arrows-fullscreen" id="FullscreenIcon"></span></button>
+    <button type="button" class="btn btn-default btn-sm" id="Fullscreen" aria-label="Enter fullscreen" aria-pressed="false"><span class="bi bi-arrows-fullscreen" id="FullscreenIcon" aria-hidden="true"></span></button>
     <canvas id="canvas"><?= L('browser_no_support')?></canvas>
     <div id="developerTools" class="well well-sm">
         <h4><?= L('developer_tools_title')?></h4> <span class="bi bi-arrows-fullscreen fa-fw leftTopPosition" id="devToolsZoom"></span>

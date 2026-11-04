@@ -83,6 +83,21 @@ test('forced compatibility audit saves direct legacy changes and reference updat
   });
   expect(draft.xml).toContain('Legacy direct edit');expect(draft.reference).toBe('PublishedReference');
 });
+test('resizing during layout does not trigger a late camera adjustment',async({page})=>{
+  await open(page);let release;const gate=new Promise(resolve=>{release=resolve;});
+  await page.route('**/layout-worker.js*',async route=>{await gate;await route.continue().catch(()=>{});});
+  try{
+    await page.evaluate(()=>{
+      const app=editor.application,g=app.graph;
+      for(let i=2;i<50;i++){g.AddNewVertex(new BaseVertex(100+i,100,null));g.AddNewEdgeSafe(g.vertices[i-1],g.vertices[i],true,1,false);}
+      app.AutoLayout();
+    });
+    await page.setViewportSize({width:640,height:480});
+    const before=await page.evaluate(()=>{resizeCanvas();const app=editor.application;return{scale:app.canvasScale,x:app.canvasPosition.x,y:app.canvasPosition.y};});
+    release();expect(await page.evaluate(()=>editor.application.layoutPromise)).toBe(true);
+    expect(await page.evaluate(()=>{const app=editor.application;return{scale:app.canvasScale,x:app.canvasPosition.x,y:app.canvasPosition.y};})).toEqual(before);
+  }finally{release();}
+});
 test('an older save does not announce completion while a newer edit is pending',async({page})=>{
   await open(page);
   const result=await page.evaluate(async()=>{

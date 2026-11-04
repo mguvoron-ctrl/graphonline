@@ -475,30 +475,21 @@ Editor.prototype.initButtonActions = function()
         return;
     }
     
-    document.getElementById('Fullscreen').onclick = function()
-    {
-        var idList = ["h1Header", "h1Text", "navigation", "footerContent", "bottom_adv"];
-        
-        self.fullscreen = !self.fullscreen
-        
-        userAction(self.fullscreen ? "fullscreen_on" : "fullscreen_off");
-        
-        for (var i = 0; i < idList.length; i++) {
-            let element = document.getElementById(idList[i]);
-            if (!element) continue;
-
-            if (self.fullscreen)
-                element.style.display = "none";    
-            else
-                element.style.display = "block";
-        }
-                
-        document.getElementById("mainContainer").className = self.fullscreen ? "container-fluid page-wrap" : "container page-wrap";
-        
-        document.getElementById("FullscreenIcon").className = self.fullscreen ? "bi bi-fullscreen-exit" : "bi bi-arrows-fullscreen";
-
-        resizeCanvas();
-    }
+    const fullscreenButton = document.getElementById("Fullscreen");
+    self.screenController = new GraphOnline.FullscreenController(document, active => {
+        const leaving = self.fullscreen && !active;
+        self.fullscreen = active;
+        fullscreenButton.title = GraphOnline.translate(active ? "exitFullscreen" : "fullscreen");
+        fullscreenButton.setAttribute("aria-label", fullscreenButton.title);
+        fullscreenButton.setAttribute("aria-pressed", String(active));
+        document.getElementById("FullscreenIcon").className = active ? "bi bi-fullscreen-exit" : "bi bi-arrows-fullscreen";
+        if (leaving) fullscreenButton.focus({preventScroll: true});
+        requestAnimationFrame(() => { resizeCanvas(); self.application.flushRender(); });
+    }, key => GraphOnline.status(key));
+    fullscreenButton.onclick = () => {
+        userAction(self.fullscreen ? "fullscreen_off" : "fullscreen_on");
+        return self.screenController.toggle();
+    };
 
     document.getElementById("ApplyDefaultStyle").onclick = function()
     {

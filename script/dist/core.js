@@ -25,6 +25,7 @@ var GraphOnline = (() => {
     Autosave: () => Autosave,
     DraftStore: () => DraftStore,
     FrameScheduler: () => FrameScheduler,
+    FullscreenController: () => FullscreenController,
     GraphIndex: () => GraphIndex,
     History: () => History,
     LayoutRunner: () => LayoutRunner,
@@ -670,8 +671,73 @@ var GraphOnline = (() => {
     return Math.exp(-Math.max(-100, Math.min(100, pixels)) * (pinch ? 0.01 : 2e-3));
   }
 
+  // frontend/fullscreen.ts
+  var FullscreenController = class {
+    constructor(document2, changed, issue) {
+      this.document = document2;
+      this.changed = changed;
+      this.issue = issue;
+      document2.addEventListener("fullscreenchange", () => this.sync());
+      document2.addEventListener("webkitfullscreenchange", () => this.sync());
+      document2.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && this.expanded) void this.toggle();
+      });
+      this.sync();
+    }
+    expanded = false;
+    fallback = false;
+    changing = false;
+    initialized = false;
+    get nativeElement() {
+      return this.document.fullscreenElement || this.document.webkitFullscreenElement;
+    }
+    sync() {
+      const expanded = this.nativeElement === this.document.documentElement || this.fallback;
+      const notify = !this.initialized || this.expanded !== expanded;
+      this.expanded = expanded;
+      this.initialized = true;
+      this.document.documentElement.classList.toggle("graphonline-fullscreen", this.expanded);
+      if (notify) this.changed(this.expanded);
+    }
+    async toggle() {
+      if (this.changing) return;
+      this.changing = true;
+      try {
+        if (this.expanded) {
+          this.fallback = false;
+          if (this.nativeElement === this.document.documentElement) {
+            const exit = this.document.exitFullscreen || this.document.webkitExitFullscreen;
+            try {
+              if (!exit) throw new Error("Exit fullscreen unavailable");
+              await exit.call(this.document);
+            } catch {
+              if (this.nativeElement === this.document.documentElement) this.issue("fullscreenExitError");
+            }
+          }
+        } else {
+          const root = this.document.documentElement;
+          const request = root.requestFullscreen || root.webkitRequestFullscreen;
+          try {
+            if (!request) throw new Error("Fullscreen unavailable");
+            await request.call(root);
+          } catch {
+            this.fallback = true;
+            this.issue("fullscreenFallback");
+          }
+        }
+        this.sync();
+      } finally {
+        this.changing = false;
+      }
+    }
+  };
+
   // frontend/ui.ts
   var messages = {
+    fullscreen: ["\u041D\u0430 \u0432\u0435\u0441\u044C \u044D\u043A\u0440\u0430\u043D", "Enter fullscreen"],
+    exitFullscreen: ["\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u043F\u043E\u043B\u043D\u043E\u044D\u043A\u0440\u0430\u043D\u043D\u043E\u0433\u043E \u0440\u0435\u0436\u0438\u043C\u0430", "Exit fullscreen"],
+    fullscreenFallback: ["\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u043D\u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0438\u043B \u043F\u043E\u043B\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D. \u0420\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D \u043D\u0430 \u0432\u0441\u044E \u0432\u043A\u043B\u0430\u0434\u043A\u0443.", "The browser did not allow fullscreen. The editor fills this tab."],
+    fullscreenExitError: ["\u0414\u043B\u044F \u0432\u044B\u0445\u043E\u0434\u0430 \u0438\u0437 \u043F\u043E\u043B\u043D\u043E\u044D\u043A\u0440\u0430\u043D\u043D\u043E\u0433\u043E \u0440\u0435\u0436\u0438\u043C\u0430 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 Esc.", "Press Esc to leave fullscreen."],
     layout: ["\u0420\u0430\u0441\u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0432\u0435\u0440\u0448\u0438\u043D\u044B", "Arrange vertices"],
     layoutRunning: ["\u0420\u0430\u0441\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u043C \u0432\u0435\u0440\u0448\u0438\u043D\u044B\u2026", "Arranging vertices\u2026"],
     layoutCancel: ["\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u043A\u0443", "Stop layout"],
