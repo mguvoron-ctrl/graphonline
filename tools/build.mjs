@@ -12,6 +12,8 @@ await build({ entryPoints: ['frontend/index.ts'], bundle: true, format: 'iife', 
   outfile: 'script/dist/core.js', sourcemap: true, target: 'es2022' });
 await build({ entryPoints: ['frontend/algorithm-worker.ts'], bundle: true, format: 'iife',
   outfile: 'script/dist/algorithm-worker.js', sourcemap: true, target: 'es2022' });
+await build({ entryPoints: ['frontend/layout-worker.ts'], bundle: true, format: 'iife',
+  outfile: 'script/dist/layout-worker.js', sourcemap: true, target: 'es2022' });
 
 // Preserve the existing module API while producing its caches from source in CI.
 const entries = ['editor', 'create_graph_by_matrix', 'create_graph_by_incidence_matrix', 'create_graph_by_edge_list'];

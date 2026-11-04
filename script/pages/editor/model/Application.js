@@ -9,6 +9,7 @@ function Application(document, window, listener)
 {
     this.document = document;
     this.listener = listener;
+    this.UseGraph(new Graph());
     this.initCanvas();
 
     this.handler = new DefaultHandler(this);
@@ -62,7 +63,6 @@ function Application(document, window, listener)
 };
 
 // Current dragged object.
-Application.prototype.graph = new Graph();
 Application.prototype.dragObject = -1;
 // User handler.
 Application.prototype.handler = null;
@@ -702,6 +702,7 @@ Application.prototype.FindAllEdges = function(id1, id2)
 
 Application.prototype.SetHandler = function(newHandler)
 {
+    if (newHandler instanceof AlgorithmGraphHandler) this.CancelLayout();
     this.algorithmGeneration = (this.algorithmGeneration || 0) + 1;
     if (this.algorithmRunner && this.algorithmRunner.busy) this.algorithmRunner.cancel();
     if (this.handler)
@@ -890,6 +891,7 @@ Application.prototype.TestAdjacencyMatrix = function (matrix, rowsObj, colsObj, 
 
 Application.prototype.SetAdjacencyMatrix = function (matrix, separator)
 {
+    this.CancelLayout();
     if(separator === undefined) 
     {
       separator = ",";
@@ -911,6 +913,7 @@ Application.prototype.SetAdjacencyMatrix = function (matrix, separator)
 
 Application.prototype.SetPair = function (pair)
 {   
+    this.CancelLayout();
 	var res = true;
     var r = {};
 	var c = {};
@@ -942,6 +945,7 @@ Application.prototype.TestPair = function (pair)
 
 Application.prototype.SetIncidenceMatrix = function (matrix)
 {
+    this.CancelLayout();
 	var res = true;
         var r = {};
 	var c = {};
@@ -958,9 +962,69 @@ Application.prototype.SetIncidenceMatrix = function (matrix)
 
 Application.prototype.Test = function ()
 {
-	this.graph.VerticesReposition(new Point(this.GetRealWidth(), this.GetRealHeight()), this.graph.vertices);
-	this.redrawGraph();
+    return this.AutoLayout();
 }
+
+Application.prototype.UseGraph = function(graph) {
+    this.CancelLayout();
+    if (this.graph) this.graph.onLayoutRequested = null;
+    this.graph = graph;
+    graph.onLayoutRequested = input => this.RequestLayout(input);
+};
+
+Application.prototype.CancelLayout = function() {
+    this.layoutGeneration = (this.layoutGeneration || 0) + 1;
+    if (this.layoutRunner) this.layoutRunner.cancel();
+    const panel = this.document.getElementById("layout-status");
+    if (panel) panel.remove();
+};
+
+Application.prototype.RequestLayout = function(input) {
+    this.CancelLayout();
+    const graph = this.graph, generation = this.layoutGeneration;
+    const vertices = graph.vertices.map(vertex => ({vertex, id: vertex.id, x: vertex.position.x, y: vertex.position.y, diameter: vertex.model.diameter}));
+    const edges = graph.edges.map(edge => ({edge, from: edge.vertex1, to: edge.vertex2}));
+    const unchanged = () => this.graph === graph && graph.vertices.length === vertices.length && graph.edges.length === edges.length
+        && vertices.every((state, i) => graph.vertices[i] === state.vertex && state.vertex.id === state.id
+            && state.vertex.position.x === state.x && state.vertex.position.y === state.y && state.vertex.model.diameter === state.diameter)
+        && edges.every((state, i) => graph.edges[i] === state.edge && state.edge.vertex1 === state.from && state.edge.vertex2 === state.to);
+    const panel = this.document.createElement("div"); panel.id = "layout-status";
+    panel.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 0";
+    const label = this.document.createElement("span"); label.textContent = GraphOnline.translate("layoutRunning");
+    label.setAttribute("role", "status");
+    const progress = this.document.createElement("progress"); progress.max = 100; progress.value = 0;
+    progress.setAttribute("aria-label", GraphOnline.translate("layoutRunning"));
+    const cancel = this.document.createElement("button"); cancel.type = "button"; cancel.className = "btn btn-sm btn-outline-secondary";
+    cancel.textContent = GraphOnline.translate("layoutCancel"); cancel.onclick = () => this.CancelLayout();
+    panel.append(label, progress, cancel);
+    (this.document.getElementById("canvasSection") || this.document.body).prepend(panel);
+    if (!this.layoutRunner) this.layoutRunner = new GraphOnline.LayoutRunner("/" + SiteDir + "script/dist/layout-worker.js?v=" + globalVersion);
+    this.layoutPromise = this.layoutRunner.run(input, value => { progress.value = value; }).then(positions => {
+        if (generation !== this.layoutGeneration || !unchanged()) return false;
+        const byId = new Map(positions.map(point => [point.id, point]));
+        for (const state of vertices) {
+            const point = byId.get(String(state.id));
+            if (point) state.vertex.position = new Point(point.x, point.y);
+        }
+        this.AutoAdjustViewport(); this.redrawGraph();
+        return true;
+    }).catch(error => {
+        if (generation === this.layoutGeneration && error.name !== "AbortError") GraphOnline.status("layoutError", true);
+        return false;
+    }).finally(() => {
+        if (generation === this.layoutGeneration) panel.remove();
+    });
+    return this.layoutPromise;
+};
+
+Application.prototype.AutoLayout = function() {
+    this.SetDefaultHandler();
+    if (!this.graph.vertices.length) return Promise.resolve(false);
+    this.PushToStack("Layout");
+    const task = this.graph.VerticesReposition(new Point(this.GetRealWidth(), this.GetRealHeight()), this.graph.vertices);
+    this.redrawGraph();
+    return task;
+};
 
 Application.prototype.SetAdjacencyMatrixSmart = function (matrix, separator)
 {
@@ -1109,7 +1173,7 @@ Application.prototype.LoadGraphFromString = function (str)
     if (userSettings.hasOwnProperty("data") && userSettings["data"].length > 0)
         this.LoadUserSettings(userSettings["data"]);
     this.SetDefaultTransformations();
-    this.graph = graph;
+    this.UseGraph(graph);
     if (this.graph.isNeedReposition())
     {
         this.graph.VerticesReposition(new Point(this.GetRealWidth(), this.GetRealHeight()), this.graph.vertices); 
@@ -1365,6 +1429,7 @@ Application.prototype.IsGraphFitOnViewport = function()
 
 Application.prototype.PushToStack = function(actionName)
 {
+    this.CancelLayout();
     this.undoStack.PushToStack(actionName, this.DocumentXML());
 
     this.UpdateHistoryButtons();
@@ -1375,7 +1440,7 @@ Application.prototype.RestoreDocumentSnapshot = function(data) {
     const graph = new Graph(), settings = {};
     graph.LoadFromXML(data, settings);
     this.SetDefaultHandler();
-    this.graph = graph;
+    this.UseGraph(graph);
     if (settings.data) this.LoadUserSettings(settings.data);
     this.redrawGraph();
     this.UpdateHistoryButtons();
@@ -1858,7 +1923,7 @@ Application.prototype.getAutoSaveRefGraphCookie = function (value)
 
 Application.prototype.CreateNewGraphObject = function ()
 {
-    this.graph = new Graph(); 
+    this.UseGraph(new Graph());
     this.savedGraphName = "";
     this.lastGraphName = ""; // Reset name on create new graph.
 }

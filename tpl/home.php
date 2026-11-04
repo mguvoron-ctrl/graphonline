@@ -241,6 +241,9 @@
             </a>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="GraphRedo" style="display:none" aria-label="Redo"><span class="bi bi-arrow-clockwise"></span></button>
           </li>
+          <li class="nav-item">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="GraphLayout" aria-label="Arrange vertices"><span class="bi bi-diagram-3" aria-hidden="true"></span></button>
+          </li>
           <!--
               <? if (!$wasVote && count($voteTopics) > 0): ?>
               <button type="button" class="btn btn-success" id="VoteButton"><span class="bi bi-thumbs-up"></span> <?= L('vote') ?></button>

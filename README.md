@@ -42,6 +42,7 @@ PmWiki and CKEditor are legacy components requiring separate upgrade and content
 
 See [the modernization plan](docs/modernization.md) for implemented changes, remaining migrations, and validation scope.
 See [performance measurements and next steps](docs/performance.md) for the current bottlenecks and `npm run benchmark` instructions.
+The “Arrange vertices” toolbar button runs the force layout in a cancellable Worker and creates one undoable operation. Matrix/import layout pins existing vertices. A circular preview stays usable if calculation fails; late results cannot overwrite an edited or replaced graph. `npm run benchmark -- --layout` also measures worker dispatch and completion separately.
 
 # Additional steps to run from subdirectory:
 

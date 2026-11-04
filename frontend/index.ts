@@ -4,6 +4,8 @@ export { parseGraphML, exportGraphML } from './graphml';
 export { AlgorithmRunner } from './runner';
 export { Timeline } from './timeline';
 export { GraphIndex, traversalSteps } from './graph-index';
+export { initialLayout } from './layout';
+export { LayoutRunner } from './layout-runner';
 export { translate, status, download } from './ui';
 import { DraftStore } from './documents';
 export const drafts = new DraftStore();

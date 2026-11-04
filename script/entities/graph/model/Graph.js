@@ -514,154 +514,22 @@ Graph.prototype.GetRandomPositionOfVertex = function (matrix, vertexIndex, viewp
 	return point;
 }
 
-Graph.prototype.VerticesReposition = function (viewportSize, newVertices)
-{
-   var maxGravityDistanceSqr = Math.max(viewportSize.x, viewportSize.y) / 5.0;
-   maxGravityDistanceSqr  = maxGravityDistanceSqr * maxGravityDistanceSqr;
-   //Math.min(viewportSize.x, viewportSize.y) / 2.0;
-   var velocityDamping    = 0.85;
-   var diameter = (new VertexModel()).diameter;
-   var maxDistance = diameter * 3;
-   var gravityDistanceSqr =  10  * (maxDistance * maxDistance);
-   var edgeGravityKof     =  10  / (maxDistance);
-   var kCenterForce       =  10  / (maxDistance * 10);
-   var centerPoint = viewportSize.multiply(0.5);
-   var velocityMax = maxDistance * 10;
-    
-   var edgesMatrix = {};   
-   for (var i = 0; i < this.edges.length; i++)
-   {  
-        edgesMatrix[this.edges[i].vertex1.id + ":" + this.edges[i].vertex2.id] = 1;
-        edgesMatrix[this.edges[i].vertex2.id + ":" + this.edges[i].vertex1.id] = 1;
-   }
-   
-   var startAngel = Math.random() * 180.0;
-   for(i = 0; i < newVertices.length; i++) // loop through vertices
-   {
-      newVertices[i].position.orbit(new Point(viewportSize.x / 2, viewportSize.y / 2), (viewportSize.x - diameter * 2) / 2, 
-					(viewportSize.y - diameter * 2) / 2, 360 * i / newVertices.length + startAngel);
-   }
-    
-   var k = 0;
-   var bChanged = true;
-   while (k < 1000 && bChanged)
-   {
-      var vertexData = [];
-      for(i = 0; i < newVertices.length; i++) // loop through vertices
-      {
-         // Has no in newVertices.
-         var currentVertex = {};
-         currentVertex.object    = newVertices[i];
-         currentVertex.net_force = new Point (0, 0);
-         currentVertex.velocity   = new Point (0, 0);
-         vertexData.push(currentVertex);
-
-         for(j = 0; j < this.vertices.length; j++) // loop through other vertices
-         {
-            otherVertex = this.vertices[j];
-      
-            if (otherVertex == currentVertex.object) continue;
-             
-            // squared distance between "u" and "v" in 2D space
-            var rsq = currentVertex.object.position.distanceSqr(otherVertex.position);
-            
-            
-            {
-              // counting the repulsion between two vertices
-              var force = (currentVertex.object.position.subtract(otherVertex.position)).normalize(gravityDistanceSqr / rsq);
-              currentVertex.net_force = currentVertex.net_force.add(force);
-            }
-         }
-
-         for(j = 0; j < this.vertices.length; j++) // loop through edges
-         {
-            otherVertex = this.vertices[j];
-            if (edgesMatrix.hasOwnProperty(currentVertex.object.id + ":" + otherVertex.id))
-            {
-                var distance = currentVertex.object.position.distance(otherVertex.position);
-                
-                if (distance > maxDistance)
-                {
-                    // counting the attraction
-                    var force = (otherVertex.position.subtract(currentVertex.object.position)).normalize(edgeGravityKof * (distance - maxDistance));
-                    currentVertex.net_force = currentVertex.net_force.add(force);
-                }
-            }
-         }
-          
-         // Calculate force to center of world.
-         var distanceToCenter = centerPoint.distance(currentVertex.object.position);
-         var force = centerPoint.subtract(currentVertex.object.position).normalize(distanceToCenter * kCenterForce);
-         currentVertex.net_force = currentVertex.net_force.add(force);
-          
-         // counting the velocity (with damping 0.85)
-         currentVertex.velocity = currentVertex.velocity.add(currentVertex.net_force);
-     }
-
-     bChanged = false;
-
-     for(i = 0; i < vertexData.length; i++) // set new positions
-     {
-        var v = vertexData[i];
-        var velocity = v.velocity;
-        if (velocity.length() > velocityMax)
-        {
-            velocity = velocity.normalize(velocityMax);
-        }
-        v.object.position = v.object.position.add(velocity);
-        if (velocity.length() >= 1)
-        {
-		  bChanged = true;
-        }
-     }
-     k++;
-   }
-    
-    
-   // Looks like something going wrong and will use circle algorithm for reposition.
-   var bbox = this.getGraphBBox();
-   if (bbox.size().length() > viewportSize.length() * 1000)
-   {
-       for(i = 0; i < newVertices.length; i++) // loop through vertices
-       {
-           newVertices[i].position.orbit(new Point(viewportSize.x / 2, viewportSize.y / 2), (viewportSize.x - diameter * 2) / 2,
-                                         (viewportSize.y - diameter * 2) / 2, 360 * i / newVertices.length + startAngel);
-       }
-   }
-   else
-   {
-       // Try to rotate graph to fill small area.
-       var count = 10;
-       var angle  = 360.0 / count;
-       var viewportAspect = viewportSize.x / viewportSize.y;
-       var bestIndex = 0;
-       var graphSize  = bbox.size();
-       var bestAspect = graphSize.x / graphSize.y;
-       var center     = bbox.center();
-       
-       for (var i = 1; i < count; i++)
-       {
-           for(j = 0; j < newVertices.length; j++) // loop through vertices
-           {
-               newVertices[j].position.rotate(center, angle);
-           }
-           
-           var newBBox   = this.getGraphBBox();
-           var newAspect = newBBox.size().x / newBBox.size().y;
-           if (Math.abs(newAspect - viewportAspect) < Math.abs(bestAspect - viewportAspect))
-           {
-               bestAspect = newAspect;
-               bestIndex = i;
-           }
-       }
-       
-       // Rotate to best aspect.
-       for(j = 0; j < newVertices.length; j++) // loop through vertices
-       {
-           newVertices[j].position.rotate(center, - angle * (count - bestIndex - 1));
-       }
-   }
-}
+// Keep a cheap preview synchronous; the application schedules force calculation in a Worker.
+Graph.prototype.VerticesReposition = function(viewportSize, newVertices) {
+    const moving = new Set(newVertices);
+    const input = {
+        width: Math.max(1, viewportSize.x), height: Math.max(1, viewportSize.y),
+        nodes: this.vertices.map(vertex => ({id: String(vertex.id), x: vertex.position.x, y: vertex.position.y,
+            diameter: vertex.model.diameter, fixed: !moving.has(vertex)})),
+        edges: this.edges.map(edge => ({source: String(edge.vertex1.id), target: String(edge.vertex2.id)}))
+    };
+    const preview = new Map(GraphOnline.initialLayout(input).map(point => [point.id, point]));
+    for (const vertex of newVertices) {
+        const point = preview.get(String(vertex.id));
+        if (point) { vertex.position = new Point(point.x, point.y); vertex.hasUndefinedPosition = false; }
+    }
+    return this.onLayoutRequested && preview.size ? this.onLayoutRequested(input) : Promise.resolve(false);
+};
 
 Graph.prototype.SetAdjacencyMatrix = function (matrix, viewportSize, currentEnumVerticesType, separator)
 {

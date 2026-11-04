@@ -70,6 +70,87 @@ test('keyboard undo and redo preserve both edits',async({page})=>{
   await page.keyboard.press('Control+Shift+z');
   expect(await page.evaluate(()=>editor.application.graph.vertices.length)).toBe(2);
 });
+
+async function layoutGraph(page,count=6) {
+  await page.evaluate(count=>{
+    const graph=new Graph();
+    for(let i=0;i<count;i++){const v=new BaseVertex(100+i*8,100+(i%3)*20,null);graph.AddNewVertex(v);v.mainText='Node '+i;}
+    for(let i=1;i<count;i++){const edge=new BaseEdge(graph.vertices[i-1],graph.vertices[i],true,i);edge.id=graph.uidEdge++;graph.edges.push(edge);}
+    editor.application.LoadNewGraphFromString(graph.SaveToXML(''));
+  },count);
+}
+async function holdLayout(page) {
+  let release;
+  const gate=new Promise(resolve=>{release=resolve;});
+  await page.route('**/script/dist/layout-worker.js*',async route=>{await gate;await route.continue().catch(()=>{});});
+  return release;
+}
+test('automatic layout uses a worker and remains one undoable operation',async({page})=>{
+  await open(page);await layoutGraph(page);
+  const before=await page.evaluate(()=>editor.application.graph.SaveToXML(''));
+  const workers=[];page.on('worker',worker=>workers.push(worker.url()));
+  await page.locator('#GraphLayout').click();
+  expect(await page.evaluate(()=>editor.application.layoutPromise)).toBe(true);
+  const after=await page.evaluate(()=>editor.application.graph.SaveToXML(''));
+  expect(after).not.toBe(before);expect(workers.some(url=>url.includes('layout-worker.js'))).toBe(true);
+  expect(await page.evaluate(()=>editor.application.graph.vertices.every(v=>Number.isFinite(v.position.x)&&Number.isFinite(v.position.y)))).toBe(true);
+  expect(await page.evaluate(()=>editor.application.graph.edges.map(e=>e.GetWeight()))).toEqual([1,2,3,4,5]);
+  await page.keyboard.press('Control+z');expect(await page.evaluate(()=>editor.application.graph.SaveToXML(''))).toBe(before);
+  await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>editor.application.graph.SaveToXML(''))).toBe(after);
+});
+test('matrix layout moves only newly created vertices',async({page})=>{
+  await open(page);await layoutGraph(page,2);
+  const result=await page.evaluate(async()=>{
+    const app=editor.application,anchors=app.graph.vertices.map(v=>({x:v.position.x,y:v.position.y}));
+    app.PushToStack('Matrix');app.SetAdjacencyMatrix('0,1,0\n1,0,1\n0,1,0');
+    const applied=await app.layoutPromise;
+    return {applied,anchors,after:app.graph.vertices.slice(0,2).map(v=>v.position),count:app.graph.vertices.length};
+  });
+  expect(result.applied).toBe(true);expect(result.after).toEqual(result.anchors);expect(result.count).toBe(3);
+});
+test('large layout keeps controls responsive and can be stopped',async({page})=>{
+  await open(page);await layoutGraph(page,1000);const release=await holdLayout(page);
+  try {
+    await page.locator('#GraphLayout').click();
+    await expect(page.locator('#layout-status')).toBeVisible();
+    await page.locator('#layout-status button').click();
+    expect(await page.evaluate(()=>editor.application.layoutPromise)).toBe(false);
+    await expect(page.locator('#layout-status')).toHaveCount(0);
+    expect(await page.evaluate(()=>editor.application.layoutRunner.busy)).toBe(false);
+    expect(await page.evaluate(()=>editor.application.graph.vertices.length)).toBe(1000);
+  } finally {release();}
+});
+test('late layout cannot overwrite direct legacy geometry changes',async({page})=>{
+  await open(page);await layoutGraph(page);const release=await holdLayout(page);
+  try {
+    await page.locator('#GraphLayout').click();
+    await page.evaluate(()=>{editor.application.graph.vertices[0].position.x=777;});
+    release();expect(await page.evaluate(()=>editor.application.layoutPromise)).toBe(false);
+    expect(await page.evaluate(()=>editor.application.graph.vertices[0].position.x)).toBe(777);
+  } finally {release();}
+});
+test('loading a new document cancels the previous layout',async({page})=>{
+  await open(page);await layoutGraph(page);const release=await holdLayout(page);
+  try {
+    await page.locator('#GraphLayout').click();
+    const result=await page.evaluate(async()=>{
+      const app=editor.application,previous=app.layoutPromise,graph=new Graph();
+      graph.AddNewVertex(new BaseVertex(123,234,null));graph.vertices[0].mainText='Replacement';
+      app.LoadNewGraphFromString(graph.SaveToXML(''));
+      return {applied:await previous,count:app.graph.vertices.length,name:app.graph.vertices[0].mainText,position:app.graph.vertices[0].position};
+    });
+    expect(result).toEqual({applied:false,count:1,name:'Replacement',position:{x:123,y:234}});
+  } finally {release();}
+});
+test('failed layout keeps a finite circular preview and an undo checkpoint',async({page})=>{
+  await open(page);await layoutGraph(page);
+  await page.route('**/script/dist/layout-worker.js*',route=>route.abort());
+  const before=await page.evaluate(()=>editor.application.graph.SaveToXML(''));
+  await page.locator('#GraphLayout').click();
+  expect(await page.evaluate(()=>editor.application.layoutPromise)).toBe(false);
+  expect(await page.evaluate(()=>editor.application.graph.vertices.every(v=>Number.isFinite(v.position.x)&&Number.isFinite(v.position.y)))).toBe(true);
+  await page.keyboard.press('Control+z');expect(await page.evaluate(()=>editor.application.graph.SaveToXML(''))).toBe(before);
+});
 test('a large local draft survives reload without compression APIs or backend',async({page})=>{
   await open(page);
   await page.route('**/backend/**',route=>route.abort());
@@ -212,6 +293,7 @@ test('the public editor and a local document reopen fully offline',async({page,c
   await page.waitForFunction(()=>typeof editor!=='undefined'&&editor.application.ready);
   expect(await page.evaluate(()=>editor.application.graph.vertices.length)).toBe(2);
   expect((await shortest(page)).result.paths).toEqual([['0','1','2']]);
+  expect(await page.evaluate(()=>editor.application.AutoLayout())).toBe(true);
 });
 
 for (const language of ['ru','en','fr','de','el','es','nl','sv','pt','bg','ch','pl','cs','ua']) {

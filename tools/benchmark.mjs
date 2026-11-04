@@ -15,7 +15,7 @@ try {
   const page = await context.newPage();
   await page.goto(baseURL, {timeout: 15_000});
   await page.waitForFunction(() => typeof editor !== 'undefined' && editor.application.ready && g_AlgorithmIds.length === 25, null, {timeout: 15_000});
-  const measurements = await page.evaluate(() => {
+  const measurements = await page.evaluate(async withLayout => {
     const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
     const results = [];
     for (const n of [50, 100, 400, 1000]) {
@@ -38,12 +38,32 @@ try {
         traversalTimes.push(performance.now() - start); algorithm.cleanup();
         if (algorithm.traversalSteps.length !== n) throw new Error('Incomplete traversal');
       }
-      results.push({vertices: n, edges: graph.edges.length,
+      const measurement = {vertices: n, edges: graph.edges.length,
         matrixMedianMs: Math.round(median(matrixTimes) * 100) / 100,
-        traversalMedianMs: Math.round(median(traversalTimes) * 100) / 100});
+        traversalMedianMs: Math.round(median(traversalTimes) * 100) / 100};
+      if (withLayout) {
+        const input = {width: 1000, height: 700,
+          nodes: graph.vertices.map(v => ({id: String(v.id), x: v.position.x, y: v.position.y, diameter: v.model.diameter, fixed: false})),
+          edges: graph.edges.map(e => ({source: String(e.vertex1.id), target: String(e.vertex2.id)}))};
+        const runner = new GraphOnline.LayoutRunner('/' + SiteDir + 'script/dist/layout-worker.js?v=' + globalVersion);
+        const dispatchTimes = [], totalTimes = []; let ticks = 0;
+        const heartbeat = setInterval(() => ticks++, 16);
+        try {
+          for (let repeat = 0; repeat < 3; repeat++) {
+            const start = performance.now(), task = runner.run(input);
+            dispatchTimes.push(performance.now() - start);
+            const positions = await task;
+            totalTimes.push(performance.now() - start);
+            if (positions.length !== n || !positions.every(p => Number.isFinite(p.x) && Number.isFinite(p.y))) throw new Error('Invalid layout');
+          }
+        } finally { clearInterval(heartbeat); runner.cancel(); }
+        Object.assign(measurement, {layoutDispatchMedianMs: Math.round(median(dispatchTimes) * 100) / 100,
+          layoutTotalMedianMs: Math.round(median(totalTimes) * 100) / 100, layoutHeartbeatTicks: ticks});
+      }
+      results.push(measurement);
     }
     return results;
-  });
+  }, process.argv.includes('--layout'));
   console.log(JSON.stringify(measurements, null, 2));
 } catch (error) {
   console.error(timedOut ? 'Benchmark exceeded its 40 second limit.' : error.message);

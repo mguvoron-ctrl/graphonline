@@ -25,11 +25,13 @@ var GraphOnline = (() => {
     DraftStore: () => DraftStore,
     GraphIndex: () => GraphIndex,
     History: () => History,
+    LayoutRunner: () => LayoutRunner,
     Timeline: () => Timeline,
     download: () => download,
     drafts: () => drafts,
     escapeHtml: () => escapeHtml,
     exportGraphML: () => exportGraphML,
+    initialLayout: () => initialLayout,
     parseGraphML: () => parseGraphML,
     status: () => status,
     translate: () => translate,
@@ -486,8 +488,102 @@ var GraphOnline = (() => {
     return steps;
   }
 
+  // frontend/layout.ts
+  function validate(input) {
+    if (input.nodes.length > 1e3 || input.edges.length > 1e4 || !Number.isFinite(input.width) || !Number.isFinite(input.height) || input.width <= 0 || input.height <= 0) {
+      throw new Error("Invalid layout dimensions or graph size");
+    }
+    const ids = /* @__PURE__ */ new Set();
+    for (const node of input.nodes) {
+      if (ids.has(node.id) || !Number.isFinite(node.x) || !Number.isFinite(node.y) || !Number.isFinite(node.diameter) || node.diameter <= 0 || Math.abs(node.x) > 1e9 || Math.abs(node.y) > 1e9) {
+        throw new Error("Invalid layout node");
+      }
+      ids.add(node.id);
+    }
+    for (const edge of input.edges) if (!ids.has(edge.source) || !ids.has(edge.target)) throw new Error("Invalid layout edge");
+  }
+  function initialLayout(input) {
+    validate(input);
+    const moving = input.nodes.filter((node) => !node.fixed);
+    const width = Math.min(input.width, 1e6), height = Math.min(input.height, 1e6);
+    const margin = Math.min(Math.max(30, ...moving.map((node) => node.diameter)), width / 2, height / 2);
+    return moving.map((node, index) => {
+      const angle = 2 * Math.PI * index / moving.length - Math.PI / 2;
+      return {
+        id: node.id,
+        x: width / 2 + (moving.length > 1 ? Math.max(0, width / 2 - margin) * Math.cos(angle) : 0),
+        y: height / 2 + (moving.length > 1 ? Math.max(0, height / 2 - margin) * Math.sin(angle) : 0)
+      };
+    });
+  }
+  function validateLayoutResult(input, value) {
+    const expected = new Set(input.nodes.filter((node) => !node.fixed).map((node) => node.id));
+    if (!Array.isArray(value) || value.length !== expected.size) throw new Error("Incomplete layout result");
+    for (const point of value) {
+      if (!point || !expected.delete(point.id) || !Number.isFinite(point.x) || !Number.isFinite(point.y) || Math.abs(point.x) > 1e9 || Math.abs(point.y) > 1e9) throw new Error("Invalid layout position");
+    }
+  }
+
+  // frontend/layout-runner.ts
+  var LayoutRunner = class {
+    constructor(url) {
+      this.url = url;
+    }
+    active;
+    get busy() {
+      return !!this.active;
+    }
+    run(input, progress = () => {
+    }) {
+      this.cancel();
+      return new Promise((resolve, reject) => {
+        const worker = new Worker(this.url);
+        const finish = (error, positions) => {
+          if (this.active?.worker !== worker) return;
+          clearTimeout(this.active.timer);
+          worker.terminate();
+          this.active = void 0;
+          error ? reject(error) : resolve(positions);
+        };
+        const timer = setTimeout(() => finish(new Error("Layout time limit exceeded")), 3e4);
+        this.active = { worker, timer, reject };
+        worker.onerror = () => finish(new Error("Layout worker failed"));
+        worker.onmessage = (event) => {
+          if (this.active?.worker !== worker) return;
+          try {
+            const data = event.data;
+            if (data.error) throw new Error(data.error);
+            if (data.positions) {
+              validateLayoutResult(input, data.positions);
+              finish(void 0, data.positions);
+            } else if (Number.isFinite(data.progress)) progress(Math.max(0, Math.min(100, data.progress)));
+          } catch (error) {
+            finish(error instanceof Error ? error : new Error("Invalid layout response"));
+          }
+        };
+        try {
+          worker.postMessage(input);
+        } catch (error) {
+          finish(error instanceof Error ? error : new Error("Could not start layout"));
+        }
+      });
+    }
+    cancel() {
+      if (!this.active) return;
+      const task = this.active;
+      this.active = void 0;
+      clearTimeout(task.timer);
+      task.worker.terminate();
+      task.reject(new DOMException("Cancelled", "AbortError"));
+    }
+  };
+
   // frontend/ui.ts
   var messages = {
+    layout: ["\u0420\u0430\u0441\u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0432\u0435\u0440\u0448\u0438\u043D\u044B", "Arrange vertices"],
+    layoutRunning: ["\u0420\u0430\u0441\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u043C \u0432\u0435\u0440\u0448\u0438\u043D\u044B\u2026", "Arranging vertices\u2026"],
+    layoutCancel: ["\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u043A\u0443", "Stop layout"],
+    layoutError: ["\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u043B\u0443\u0447\u0448\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435. \u041A\u0440\u0443\u0433\u043E\u0432\u0430\u044F \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u043A\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430.", "Could not improve the layout. The circular layout is kept."],
     negativeCycle: ["\u0412 \u0433\u0440\u0430\u0444\u0435 \u0435\u0441\u0442\u044C \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u0446\u0438\u043A\u043B: \u043A\u0440\u0430\u0442\u0447\u0430\u0439\u0448\u0438\u0435 \u0440\u0430\u0441\u0441\u0442\u043E\u044F\u043D\u0438\u044F \u043D\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u044B.", "The graph has a negative cycle: shortest distances are undefined."],
     computing: ["\u0412\u044B\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u0435\u2026", "Computing\u2026"],
     saving: ["\u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u043C\u2026", "Saving\u2026"],

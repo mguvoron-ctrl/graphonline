@@ -1,4 +1,8 @@
 const messages: Record<string, [string, string]> = {
+  layout: ['Расположить вершины', 'Arrange vertices'],
+  layoutRunning: ['Расставляем вершины…', 'Arranging vertices…'],
+  layoutCancel: ['Остановить раскладку', 'Stop layout'],
+  layoutError: ['Не удалось улучшить расположение. Круговая раскладка сохранена.', 'Could not improve the layout. The circular layout is kept.'],
   negativeCycle: ['В графе есть отрицательный цикл: кратчайшие расстояния не определены.', 'The graph has a negative cycle: shortest distances are undefined.'],
   computing: ['Вычисление…', 'Computing…'],
   saving: ['Сохраняем…', 'Saving…'], saved: ['Сохранено на устройстве', 'Saved on this device'],

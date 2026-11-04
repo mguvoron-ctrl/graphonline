@@ -57,6 +57,11 @@ Editor.prototype.initKeyActions = function() {
     });
     document.getElementById("GraphRedo").title = GraphOnline.translate("redo");
     document.getElementById("GraphRedo").onclick = () => self.application.Redo();
+    const layout = document.getElementById("GraphLayout");
+    if (layout) {
+        layout.title = GraphOnline.translate("layout"); layout.setAttribute("aria-label", layout.title);
+        layout.onclick = () => self.application.AutoLayout();
+    }
 
     function getCharCode(event) {
         if (event.which == null) { // IE
