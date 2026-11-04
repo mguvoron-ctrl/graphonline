@@ -1,6 +1,6 @@
 #!/bin/bash
 task_root=$(cd "$(dirname "$0")" && pwd)
-bash "$task_root/tools/local.sh" start
+bash "$task_root/tools/native.sh" start
 task_status=$?
-if [ "$task_status" -ne 0 ]; then read -r -p 'Press Enter to close this window.'; fi
+if [ "$task_status" -ne 0 ]; then read -r -p 'Нажмите Enter, чтобы закрыть окно.'; fi
 exit "$task_status"

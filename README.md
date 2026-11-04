@@ -8,7 +8,7 @@ MIT License.
 
 # Development
 
-For local viewing on macOS, see [the Mac launch instructions](docs/macos.md). The release archive includes built assets: install Docker Desktop, then open `Start GraphOnline.command`, or run `bash tools/local.sh start`. PHP and Node are not needed for viewing.
+For local viewing on macOS, see [the Mac launch instructions](docs/macos.md). Install PHP 8.4 once (`brew install php@8.4` if Homebrew is available), then open `Start GraphOnline.command` or run `bash tools/native.sh start`. Built assets are included, so viewing needs neither Node nor Docker. Docker remains available through `bash tools/local.sh start`.
 
 Requirements: Node.js 24+, npm, and PHP 8.4 with DOM/libxml and zlib. A current browser with IndexedDB, WebAssembly and Workers supports the full editor. HTTPS (or localhost) enables offline support. The primary editor needs no database or API credentials.
 

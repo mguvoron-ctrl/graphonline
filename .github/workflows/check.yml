@@ -16,11 +16,22 @@ jobs:
           ini-values: short_open_tag=On
       - run: npm ci
       - run: npm run check
+      - run: for task_script in tools/*.sh *.command; do bash -n "$task_script"; done
       - run: php -d zend.assertions=1 -d assert.exception=1 tests/php/auth.php
       - run: find backend core model src tpl lang -name '*.php' -print0 | xargs -0 -n1 php -d short_open_tag=On -l
       - run: git diff --exit-code -- script/dist service-worker.js 'script/**/*.cache'
       - run: npx playwright install --with-deps chromium
+      - name: Start native PHP server
+        run: bash tools/native.sh start
+        env:
+          GRAPHONLINE_PORT: 8080
+          GRAPHONLINE_STORAGE_DIR: /tmp/graphonline-test-documents
       - run: npm run test:browser
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8080
+      - name: Stop native PHP server
+        if: always()
+        run: bash tools/native.sh stop
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

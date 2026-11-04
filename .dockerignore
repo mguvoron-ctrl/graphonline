@@ -2,6 +2,8 @@
 node_modules
 test-results
 playwright-report
+.graphonline-native
+.graphonline-port
 tmp/auto_merge_css_js
 .env
 .env.*
