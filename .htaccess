@@ -4,6 +4,12 @@
 Options -Indexes
 RewriteEngine on
 RewriteBase /
+RewriteRule (^|/)\.(?!well-known/) - [F,L]
+RewriteRule ^(?:node_modules|tests|frontend|tools)/ - [F,L]
+
+<FilesMatch "^(?:bootstrap|saveGraphHelpers|cli_only)\.php$">
+    Require all denied
+</FilesMatch>
 
 # Auto redirect to https.
 RewriteCond %{HTTPS} off

@@ -124,8 +124,8 @@ ShowDistanceMatrix.prototype.show = function()
 		col_text = col_text.padStart(col_width, " ");
 		topText += col_text + "  ";
 	}
-	$("#floidMatrix_top_text_text").html(topText);
-	$("#floidMatrix_side_text_text").html(sideText + "\n");
+	$("#floidMatrix_top_text_text").text(topText);
+	$("#floidMatrix_side_text_text").text(sideText + "\n");
 				
 	$( "#floidMatrix" ).dialog({
 		resizable: false,

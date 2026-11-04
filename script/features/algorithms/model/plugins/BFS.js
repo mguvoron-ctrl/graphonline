@@ -42,34 +42,7 @@ BFSAlgorithm.prototype.result = function(resultCallback)
     return result;
 }
 
-BFSAlgorithm.prototype.getMainMessage = function()
-{
-    var message = g_traversalOrder;
-    // calculate.
-    var tempVisited = this.visited.slice();
-    var tempEdge    = [];
-    
-    var oldLength = 0;
-    
-    while (oldLength < tempVisited.length)
-    {
-        oldLength = tempVisited.length;
-        for (var i = 0; i < tempVisited.length; i++)
-        {
-            if (this.bfs(tempVisited[i], tempVisited, tempEdge))
-                break;
-        }
-    }
-    
-    // Format message
-    for (var i = 0; i < tempVisited.length; i ++)
-    {
-        tempVisited[i].upText = (i + 1) + "";
-        message = message + tempVisited[i].mainText + " ";
-    }
-    
-    return message;
-}
+BFSAlgorithm.prototype.getMainMessage = BaseTraversal.prototype.getMainMessage;
 
 BFSAlgorithm.prototype.getPriority = function()
 {

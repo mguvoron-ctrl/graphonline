@@ -61,45 +61,17 @@ SavedDialogGraphImageHandler.prototype.showDialogCallback = function (imageExten
 
 }
 
-SavedDialogGraphImageHandler.prototype.showWorkspace = function()
-{
-    var object = this;
-    var callback = function() {
-      object.showDialogCallback("png");
-    };
-    
-    this.imageName = this.app.SaveGraphImageOnDisk(callback);
-}
-
-SavedDialogGraphImageHandler.prototype.showFullgraph = function()
-{
-    var object = this;
-    var callback = function() {
-      object.showDialogCallback("png");
-    };
-    
-    this.imageName = this.app.SaveFullGraphImageOnDisk(callback, false);
-}
-
-SavedDialogGraphImageHandler.prototype.showPrint = function()
-{
-    var object = this;
-    var callback = function() {
-      object.showDialogCallback("png");
-    };
-    
-    this.imageName = this.app.SaveFullGraphImageOnDisk(callback, true);
-}
-
-SavedDialogGraphImageHandler.prototype.showSvg = function()
-{
-    var object = this;
-    var callback = function() {
-      object.showDialogCallback("svg");
-    };
-    
-    this.imageName = this.app.SaveSVGGraphOnDisk(callback);
-}
+SavedDialogGraphImageHandler.prototype.downloadCanvas = function(canvas) {
+    canvas.toBlob(blob => {
+        if (blob) GraphOnline.download(blob, "image/png", "graph.png");
+    }, "image/png");
+};
+SavedDialogGraphImageHandler.prototype.showWorkspace = function() {
+    this.app.stopRenderTimer(); this.app.redrawGraph(); this.downloadCanvas(this.app.canvas);
+};
+SavedDialogGraphImageHandler.prototype.showFullgraph = function() { this.downloadCanvas(this.app._OffscreenRedrawGraph()); };
+SavedDialogGraphImageHandler.prototype.showPrint = function() { this.downloadCanvas(this.app._PrintRedrawGraph()); };
+SavedDialogGraphImageHandler.prototype.showSvg = function() { GraphOnline.download(this.app._printToSVG(), "image/svg+xml", "graph.svg"); };
 
 SavedDialogGraphImageHandler.prototype.copyGraphImageLink = function()
 {

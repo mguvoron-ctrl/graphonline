@@ -429,6 +429,9 @@
 #message
 {
     overflow-wrap: break-word;
+    height: auto;
+    min-height: 35px;
+    padding: 8px;
 }
 
 .small-bottom-marging

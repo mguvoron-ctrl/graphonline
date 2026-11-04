@@ -82,12 +82,12 @@ FindLongestPath.prototype.setResultMessage = function()
         var currentPath = "";
         var first = true;
         this.foundPaths[this.nSubgraphIndex].forEach((nodeId) => {
-            currentPath += (first ? "" : "⇒") + this.graph.FindVertex(nodeId).mainText;
+            currentPath += (first ? "" : "⇒") + gEncodeToHTML(this.graph.FindVertex(nodeId).mainText);
             first = false;
         });
 
-        this.message = g_LengthOfLongestPathFrom + this.firstObject.mainText + 
-        g_to + this.secondObject.mainText + g_are + 
+        this.message = g_LengthOfLongestPathFrom + gEncodeToHTML(this.firstObject.mainText) +
+        g_to + gEncodeToHTML(this.secondObject.mainText) + g_are +
         this.maxPathLength + ": " + currentPath;
     }
     else

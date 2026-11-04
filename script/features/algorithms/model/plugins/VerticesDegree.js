@@ -51,7 +51,8 @@ VerticesDegree.prototype.result = function(resultCallback)
         }
         else
         {
-            thisObj.degree[id] = 1;      
+            thisObj.degree[id] = 1;
+            thisObj.maxDegree = Math.max(thisObj.maxDegree, 1);
         }
     }
     

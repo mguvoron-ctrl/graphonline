@@ -1,0 +1,6 @@
+{
+  "name": "Graph Online", "short_name": "Graph Online",
+  "start_url": "/", "scope": "/", "display": "standalone",
+  "background_color": "#ffffff", "theme_color": "#397db6",
+  "icons": [{"src": "/i/image/touch_icon/favicon_144x144.png", "sizes": "144x144", "type": "image/png"}]
+}

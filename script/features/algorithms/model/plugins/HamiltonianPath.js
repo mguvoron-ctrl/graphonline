@@ -90,7 +90,7 @@ FindHamiltonianPath.prototype.resultCallback = function(pathObjects, properties,
         this.message = this.message + ": ";
         for (var i = 0; i < nodesPath.length; i++)
         {
-            this.message = this.message + this.graph.FindVertex(nodesPath[i]).mainText + ((i < nodesPath.length - 1) ? "&rArr;" : "");
+            this.message = this.message + gEncodeToHTML(this.graph.FindVertex(nodesPath[i]).mainText) + ((i < nodesPath.length - 1) ? "&rArr;" : "");
         }
     }
     

@@ -39,7 +39,7 @@
 0, 1, 0
 1, 0, 0
 0, 1, 0
-<?php else: ?><?= $_GET["matrix"] ?><?php endif;?></textarea>
+<?php else: ?><?= htmlspecialchars((string)($_GET["matrix"] ?? ""), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?><?php endif;?></textarea>
 <div id="idSeparatorList" style="display: none;">
 <?= L('separator') ?>
     <label for="commoSep"><input type="radio" name="separator" value="commo" id="commoSep" checked> <?= L('separator_commo') ?></label>

@@ -1,35 +1,10 @@
 <?php
-
-  include ("../core/config/main.php");
-  include ("saveGraphHelpers.php");
-  include ("crossDomain.php");
-
-  $name  = $_GET["name"];
-  $log = "";
-  if (isValidName($name))
-  {
-    $content = file_get_contents(getXMLFileName($name));
-    // Try to find on extarnal domains
-    if (false === $content) 
-    {
-      foreach ($domains as $domain) 
-      {
-        if (!isCurrentDomain($domain))
-        {
-          $log .= "<!-- Search in $domain -->\n";
-          $content = file_get_contents("https://" . $domain . "/" . getXMLFileName($name, true));
-          if (false !== $content)
-          {
-            $content = $content;
-            $log .= "<!-- Got from $domain -->\n";
-            break;
-          }
-        }
-      }
-    }
-
-  	echo (gzuncompress($content) . $log);
-  }
-
-  echo (""); 
-?>
+require_once __DIR__ . '/bootstrap.php';
+requireMethod('GET');
+$path = getXMLFileName(requestName());
+if (!is_file($path)) apiError(404, 'Graph not found');
+$compressed = file_get_contents($path);
+$body = $compressed === false ? false : @gzuncompress($compressed, 2 * 1024 * 1024);
+if ($body === false) apiError(422, 'Stored graph is invalid');
+header('Content-Type: application/xml; charset=utf-8');
+echo $body;

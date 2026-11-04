@@ -17,7 +17,7 @@ function resizeCanvas()
     (adv && $("#bottom_info").css("display") === 'block' ? document.getElementById('bottom_info').offsetHeight : 0) - 
     ($("#footer").css("display") === 'block' ? document.getElementById('footer').offsetHeight : 0) - offset;
 
-  setDPIForCanvas(canvas, width_float, height_float);
+  setDPIForCanvas(canvas, Math.max(1, width_float), Math.max(200, height_float));
 
   editor.redraw();
 }
@@ -52,9 +52,11 @@ function handelImportGraph(files) {
     fileReader.onload = function(fileLoadedEvent){
         var textFromFileLoaded = fileLoadedEvent.target.result;
         //console.log(textFromFileLoaded);
+        try {
         editor.application.LoadNewGraphFromString(textFromFileLoaded);
         // Save graph to auto save after import.
-        editor.application.saveAutoSave(textFromFileLoaded);
+        editor.application.saveAutoSave(textFromFileLoaded).catch(() => {});
+        } catch (error) { GraphOnline.status("loadError", true); }
         ImportGraphFiles.value = "";
     };
 
@@ -83,20 +85,10 @@ $(document).ready(function ()
     document.getElementById('canvas').addEventListener("touchend", touchHandler, true);
     document.getElementById('canvas').addEventListener("touchcancel", touchHandler, true);
 
-    // Try load emscripten implementation
-    var isMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i);
-    if (!isMobile && !DisableEmscripten) {
-      let fullPathToGraphffoline = "features/graphoffline/Graphoffline.Emscripten.js" + "?v=" + globalVersion;
-      doIncludeAsync ([
-    	include (fullPathToGraphffoline),
-      ], () => {
-        Module['onRuntimeInitialized'] = onRuntimeInitialized;
-        var process = Module.cwrap('ProcessAlgorithm', 'string', ['string']);
-        function onRuntimeInitialized() {
-          editor.application.setEmscripten(process);
-        }
-      })
+    if (typeof WebAssembly !== "undefined" && typeof Worker !== "undefined" && !DisableEmscripten) {
+        editor.application.algorithmRunner = new GraphOnline.AlgorithmRunner("/" + SiteDir + "script/dist/algorithm-worker.js?v=" + globalVersion);
     }
+
 /*
 	$(document).ready(function(){
 	    //set up some basic options for the feedback_me plugin
@@ -116,3 +108,7 @@ $(document).ready(function ()
 	});
 */
 });
+
+if ('serviceWorker' in navigator && window.isSecureContext && SiteDir === '') {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(error => console.info('Offline cache unavailable', error)));
+}

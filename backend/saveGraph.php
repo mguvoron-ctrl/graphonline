@@ -1,16 +1,8 @@
 <?php
-
-  include ("../core/config/main.php");
-  include ("saveGraphHelpers.php");
-
-  $graph = file_get_contents("php://input");
-  $name  = $_GET["name"];
-
-  if (isValidName($name))
-  {
-  	$file = fopen(getXMLFileName($name), "w");
-  	fprintf($file, "%s", gzcompress($graph, -1));
-  	fclose($file);
-	echo ("OK");
-  }
-?>
+require_once __DIR__ . '/bootstrap.php';
+requireMethod('POST');
+$name = requestName();
+$body = requestBody();
+validateGraph($body);
+publishFile(getXMLFileName($name), gzcompress($body));
+apiOK();

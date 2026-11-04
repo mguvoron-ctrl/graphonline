@@ -21,9 +21,9 @@ SavedDialogGraphHandler.prototype.pathObjects = null;
 // Objects.
 SavedDialogGraphHandler.prototype.objects    = null;
 
-SavedDialogGraphHandler.prototype.show = function(object)
+SavedDialogGraphHandler.prototype.showPublished = function(object)
 {
-	this.app.SaveGraphOnDisk();
+
 
 	var dialogButtons = {};
 
@@ -31,7 +31,7 @@ SavedDialogGraphHandler.prototype.show = function(object)
 				$( this ).dialog( "close" );					
 			};
 
-	document.getElementById('GraphName').value = "http://" + window.location.host + window.location.pathname + 
+	document.getElementById('GraphName').value = window.location.protocol + "//" + window.location.host + window.location.pathname +
 							"?graph=" + this.app.GetGraphName();
 
  	document.getElementById('GraphName').select();
@@ -106,3 +106,5 @@ SavedDialogGraphHandler.prototype.setCopyButtonIcon = function(iconClass)
 		icon.className = iconClass;
 	}
 };
+
+SavedDialogGraphHandler.prototype.show = function() { return this.app.SaveGraphOnDisk(() => this.showPublished()).catch(() => {}); };

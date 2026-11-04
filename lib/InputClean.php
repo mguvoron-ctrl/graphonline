@@ -46,7 +46,7 @@
             }
 
             // We strip slashes if magic quotes is on to keep things consistent
-            if (get_magic_quotes_gpc())
+            if ((function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()))
             {
                 $str = stripslashes($str);
             }
@@ -125,7 +125,7 @@
             */
             if (is_array($str))
             {
-                while (list($key) = each($str))
+                foreach (array_keys($str) as $key)
                 {
                     $str[$key] = $this->xss_clean($str[$key]);
                 }

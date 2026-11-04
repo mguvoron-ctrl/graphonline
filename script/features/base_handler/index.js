@@ -171,7 +171,7 @@ BaseHandler.prototype.GetSelectVertexMenu = function(menuName)
     
 	for (var i = 0; i < this.app.graph.vertices.length; i++)
 	{
-		res = res + "<option value=\"" + this.app.graph.vertices[i].mainText + "\"/>";
+		res = res + "<option value=\"" + gEncodeToHTML(this.app.graph.vertices[i].mainText) + "\"/>";
 	}
     
     return res + "</datalist>";

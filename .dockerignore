@@ -1,0 +1,7 @@
+.git
+node_modules
+test-results
+playwright-report
+tmp/auto_merge_css_js
+.env
+.env.*

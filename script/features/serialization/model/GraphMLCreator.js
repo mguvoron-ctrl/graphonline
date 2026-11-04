@@ -20,7 +20,7 @@ GraphMLCreator.prototype.GetXMLString = function()
 	
 	var defaultWeight = 1.0;
 	var weightKeyId  = "\"d0\"";
-	var weightNode = "<key id="+ weightKeyId + " for=\"node\" attr.name=\"weight\" attr.type=\"double\">" +
+	var weightNode = "<key id="+ weightKeyId + " for=\"edge\" attr.name=\"weight\" attr.type=\"double\">" +
 			"<default>" + defaultWeight + "</default>" +
 			"</key>";
 	
@@ -57,6 +57,6 @@ GraphMLCreator.prototype.GetXMLString = function()
 			
 		xmlBody = xmlBody +	((weightData != "") ? ">" + weightData + "</edge>" : "/>")
 	}	
-	xml = mainHeader + weightNode + (hasDirected ? directedHeader : undirectedHeader) + xmlBody + "</graph></graphml>"
+	var xml = mainHeader + weightNode + (hasDirected ? directedHeader : undirectedHeader) + xmlBody + "</graph></graphml>"
 	return xml;
 }

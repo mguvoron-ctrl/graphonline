@@ -314,7 +314,7 @@ window.onload = function ()
 1, 0
 1, 1
 0, -1
-<?php else: ?><?= $_GET["incidenceMatrix"] ?><?php endif;?></textarea>
+<?php else: ?><?= htmlspecialchars((string)($_GET["incidenceMatrix"] ?? ""), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?><?php endif;?></textarea>
 </form>
 <div id="MatrixForm">
 <form id="AdjacencyMatrixFieldInput" role="form" class="mb-2">

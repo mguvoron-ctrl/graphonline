@@ -1,2 +1,6 @@
 tmp/auto_merge_css_js/*/*
 tmp/extrapacker_admin/*/*
+node_modules/
+test-results/
+playwright-report/
+.graphonline-port

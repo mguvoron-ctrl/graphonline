@@ -6,43 +6,42 @@ This is source code of graphonline service. Graphonline helps visualize graph an
 
 MIT License.
 
-# Requirements
+# Development
 
-Client side:
-1. HTML5 support of client side.
+For local viewing on macOS, see [the Mac launch instructions](docs/macos.md). The release archive includes built assets: install Docker Desktop, then open `Start GraphOnline.command`, or run `bash tools/local.sh start`. PHP and Node are not needed for viewing.
 
-Server side:
-1. PHP 7.4 or PHP 5.6.
-2. Binary cgi supports. It needs for some algorithm, but almost all can work without it.
+Requirements: Node.js 24+, npm, and PHP 8.4 with DOM/libxml and zlib. A current browser with IndexedDB, WebAssembly and Workers supports the full editor. HTTPS (or localhost) enables offline support. The primary editor needs no database or API credentials.
 
-# How to run
+```sh
+npm ci
+npm run check
+# With PHP installed:
+php -d short_open_tag=On -S 127.0.0.1:8080 -t . tools/router.php
+# Or run PHP through Docker:
+docker compose up
+```
 
-1. Download repository to local website folder. It should be placed into root of domen. If you want to run graphonline from subdirectory read "Additional steps to run from subdirectory" below.
-2. Change access rights of directory /tmp (it is actually for Non-Windows system, you should set rwx). PHP scripts should be able to create and to modify files inside it.
-3. Change default root password in file: /core/config/admin_sector.php
-```
-$g_config['admin_sector']['def_pwd'] = 'rootPass';
-```
-4. Change password to wiki. Change lines:
-```
-$DefaultPasswords['admin'] = pmcrypt('pas');
-$DefaultPasswords['edit'] = pmcrypt('pas');
-```
-In files:
-/wiki/local/config.php
-/en/wiki/local/config.php
+Built assets are committed so a PHP deployment can serve the editor without Node. After changing JS or TypeScript, run `npm run build`; CI verifies that generated assets match the sources. Do not rebuild JS using the legacy admin cache page.
 
-5. Maybe you need to disable autoredirect to https. Comments or remove lines:
+```sh
+npx playwright install chromium
+npm run test:browser
+# To test an already running server/system Chromium:
+CHROMIUM_PATH=/usr/bin/chromium PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:browser
 ```
-RewriteCond %{HTTPS} off
-RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-```
-In files:
-/.htaccess
-/wiki/.htaccess
-/en/wiki/.htaccess
 
-6. Some algorithms (short-path, Eulerian cycle/path and so on) use external modul for algorithm. Currently for desktops it is JS file: script\Graphoffline.Emscripten.js. For mobile phones and tablets we continue using binary CGI file. Binary CGI or Graphoffline.Emscripten.js are built from GraphOffline: https://github.com/UnickSoft/GraphOffline. Binary cgi should be placed to /cgi-bin/GraphCGI.exe or you can take precompiled file(Windows and Mac) from /cgi-bin/GraphOffline/
+The test server uses `/tmp/graphonline-test-documents`. Normal document storage defaults to `tmp/saved`; PHP must be able to write there. `GRAPHONLINE_STORAGE_DIR` can select another writable directory. Legacy compressed XML remains supported within the document limits: 2 MiB of XML, 1,000 vertices and 10,000 edges. Larger documents require a separate migration. Publishing creates immutable snapshots: publishing an edited graph creates a new link. Local recovery drafts are kept in IndexedDB, including after a failed publication. PNG/SVG export happens entirely in the browser and does not require GD.
+
+The development router is for local development. Production needs a PHP-capable web server with the routing and access controls in `.htaccess` (or equivalent configuration). Keep internal sources, Git metadata and storage execution inaccessible. Use HTTPS. Offline support currently assumes deployment at the domain root.
+
+# Administration and legacy components
+
+The administration interface is disabled until `GRAPHONLINE_ADMIN_PASSWORD_HASH` is configured. Generate a hash securely with PHP `password_hash`; provide it through deployment settings, never commit the password or hash. `GRAPHONLINE_ADMIN_LOGIN` defaults to `admin`. Authentication uses server-side sessions and CSRF-protected POST forms. Maintenance scripts in `backend` are CLI-only. Use `npm run build` for assets.
+
+PmWiki and CKEditor are legacy components requiring separate upgrade and content verification. They are not included in the verified PHP 8.4 editor/API workflow. Change their default credentials before enabling them on a public deployment. The optional native CGI distributions are retained for reference; the editor uses the WebAssembly engine in a cancellable Worker on desktop and mobile.
+
+See [the modernization plan](docs/modernization.md) for implemented changes, remaining migrations, and validation scope.
+See [performance measurements and next steps](docs/performance.md) for the current bottlenecks and `npm run benchmark` instructions.
 
 # Additional steps to run from subdirectory:
 
@@ -63,10 +62,9 @@ define('SITE_IN_DIR',   'graph');
 4. Run merge.php to apply changes. Run http://localhost/graph/script/merge.php
 
 
-# Additional steps if you want to change js scripts from script directory:
-1. We use our own js cache. It is files *.js.cache located in in script/pages. If you remove these cache files the browser will load scripts from source files. You may need to disable browser cache. Or change setting: $g_config['use_js_cache']
-2. If you want to update cache use this admin page: /admin/page_update_script_cache. Just click to all links and wait until the cache will be updated.
-3. If you change cache files and you want browsers to redownload script cache incripent number in setting $g_config['engine_version'].
+# JavaScript and TypeScript changes
+
+Legacy source lives in `script`; new isolated modules live in `frontend` as TypeScript. `npm run build` produces the core/Worker bundles, deterministic entry caches and offline resource manifest. `GRAPHONLINE_USE_JS_CACHE=0` enables the source module loader for debugging. Both source and production entry paths should remain compatible.
 
 # Fix problems
 

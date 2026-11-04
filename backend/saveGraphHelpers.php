@@ -6,7 +6,7 @@
 // Only latic.
 function isValidName($name)
 {
-	return preg_match("(^[autosave_]*+[a-zA-Z]+[_test]*$)", $name);
+	return is_string($name) && preg_match('/\A(?:autosave_)?[a-zA-Z]{1,64}(?:_test)?\z/D', $name) === 1;
 }
 
 function isAutoSave($name)
@@ -20,12 +20,7 @@ function getXMLFileName($graphName, $fromRoot=false)
     
     $auto_save = isAutoSave($graphName);
 
-	$dirName = ($fromRoot ? "" : "../") . $g_config['graphSavePath'] . ($auto_save ? 'autosave' : substr($graphName, 0, 2));
-
-	if(!file_exists($dirName))
-	{
-        mkdir($dirName, 0777, true);
-	}
+	$dirName = (rtrim(getenv("GRAPHONLINE_STORAGE_DIR") ?: dirname(__DIR__) . "/tmp/saved", "/") . "/") . ($auto_save ? 'autosave' : substr($graphName, 0, 2));
 
 	return $dirName . "/$graphName.xml";
 }
@@ -35,28 +30,16 @@ function getImageFileName($graphName, $fromRoot=false)
 {
     global $g_config;
     
-    $dirName = ($fromRoot ? "" : "../") . $g_config['graphSavePath'] . substr($graphName, 0, 2);
-
-    if(!file_exists($dirName))
-    {
-        mkdir($dirName, 0777, true);
-    }
-
-    return $dirName . "/$graphName.png";
+    $dirName = (rtrim(getenv("GRAPHONLINE_STORAGE_DIR") ?: dirname(__DIR__) . "/tmp/saved", "/") . "/") . substr($graphName, 0, 2);
+return $dirName . "/$graphName.png";
 }
 
 function getSvgFileName($graphName, $fromRoot=false)
 {
     global $g_config;
     
-    $dirName = ($fromRoot ? "" : "../") . $g_config['graphSavePath'] . substr($graphName, 0, 2);
-
-    if(!file_exists($dirName))
-    {
-        mkdir($dirName, 0777, true);
-    }
-
-    return $dirName . "/$graphName.svg";
+    $dirName = (rtrim(getenv("GRAPHONLINE_STORAGE_DIR") ?: dirname(__DIR__) . "/tmp/saved", "/") . "/") . substr($graphName, 0, 2);
+return $dirName . "/$graphName.svg";
 }
 
     
@@ -65,7 +48,9 @@ function saveGraphXML($graph, $name, $fromRoot = false)
     $res = false;
     if (isValidName($name))
     {
-        $file = fopen(getXMLFileName($name, $fromRoot), "w");
+        $path = getXMLFileName($name, $fromRoot);
+        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        $file = @fopen($path, "x");
         if ($file)
         {
             fprintf($file, "%s", gzcompress($graph, -1));

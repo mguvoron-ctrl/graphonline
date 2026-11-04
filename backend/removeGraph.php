@@ -1,21 +1,3 @@
 <?php
-
-  include ("../core/config/main.php");
-  include ("saveGraphHelpers.php");
-
-  $name  = $_GET["name"];
-
-  if (isValidName($name) && isAutoSave($name))
-  {
-    $xmlFileName = getXMLFileName($name);
-    if (file_exists($xmlFileName))
-    {
-      unlink($xmlFileName);
-    }
-    echo ("OK");
-  }
-  else
-  {
-    echo ("Error");
-  }
-?>
+require_once __DIR__ . '/bootstrap.php';
+apiError(410, 'Server draft deletion is no longer supported');

@@ -43,7 +43,7 @@
                             (
                                 'error_reporting'    => E_ALL ^ E_DEPRECATED,  // Выдавать все ошибки за исключением нотайсов об устаревшом коде
                                 //'display_errors'     => DEBUG_MODE,            // Выводить ли ошибки в браузер
-                                'memory_limit'       => '10M',                 // Максимальное коливество памяти на выполнение скрипта
+                                'memory_limit'       => '128M',                 // Максимальное коливество памяти на выполнение скрипта
                                 'max_execution_time' => '15',                  // Максимальное время выполнения скрипта
                                 'max_input_time'     => '15',                  // Время в течении которого скрипту разрешено получать данные
                                 // "upload_max_filesize" и "post_max_size" - Для изменения размера загружаемыз данных (файлов или POST) но задавать нужно через "php.ini | .htaccess | httpd.conf"
@@ -93,6 +93,6 @@
     $g_config['donateTransactions']     = "./tmp/donate/transactions.txt";
     $g_config['vote']                   = "./tmp/vote/vote.txt";
     $g_config['voteTopics']             = "./tmp/vote/voteTopics.txt_";
-    $g_config['use_js_cache']           = true;
-    $g_config['engine_version']         = 110;
+    $g_config['use_js_cache']           = getenv('GRAPHONLINE_USE_JS_CACHE') !== '0';
+    $g_config['engine_version']         = 111;
 ?>

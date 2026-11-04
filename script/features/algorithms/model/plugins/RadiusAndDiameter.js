@@ -50,7 +50,7 @@ RadiusAndDiameter.prototype.getMessage = function(local)
     {
         if (this.radiusSelectedObjects[i] instanceof BaseVertex)
         {
-            text = text + this.radiusSelectedObjects[i].mainText + ((i < this.radiusSelectedObjects.length - 1) ? "&rArr;" : "");   
+            text = text + gEncodeToHTML(this.radiusSelectedObjects[i].mainText) + ((i < this.radiusSelectedObjects.length - 1) ? "&rArr;" : "");
         }
     }
     text = text + ").";
@@ -62,7 +62,7 @@ RadiusAndDiameter.prototype.getMessage = function(local)
     {
         if (this.diameterSelectedObjects[i] instanceof BaseVertex)
         {
-            text = text + this.diameterSelectedObjects[i].mainText + ((i < this.diameterSelectedObjects.length - 1) ? "&rArr;" : "");   
+            text = text + gEncodeToHTML(this.diameterSelectedObjects[i].mainText) + ((i < this.diameterSelectedObjects.length - 1) ? "&rArr;" : "");
         }
     }
     text = text + ").";

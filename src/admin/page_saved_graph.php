@@ -34,11 +34,13 @@ function processFiles($mask, &$countFiles, &$sizeFiles, &$ageCount, $ageCallback
     glob_recursive($mask, $processFile);
 }
 
+if (!function_exists('str_ends_with')) {
 function str_ends_with($haystack, $needle) {
     if ($needle === '') {
         return true;
     }
     return substr($haystack, -strlen($needle)) === $needle;
+}
 }
 
 $age6mLessCallback = function($age)

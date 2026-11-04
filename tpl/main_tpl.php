@@ -10,7 +10,7 @@
         <meta property="og:title" content="<?= $title ?>" />
         <meta property="og:type" content="website" />
         <?php $page_url = 'https://' . $_SERVER['HTTP_HOST'] . explode('?', $_SERVER['REQUEST_URI'], 2)[0] . (!empty($_GET["graph"]) ? '?graph=' . $_GET["graph"] : "" ); ?>        
-        <meta property="og:url" content="<?= $page_url ?>" />
+        <meta property="og:url" content="<?= htmlspecialchars($page_url, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?>" />
         <?php if (!empty($g_lang["m_description_long"])):?><meta property="og:description" content="<?= $g_lang["m_description_long"] ?>"><?php endif?>
 
         <link rel="apple-touch-icon-precomposed" sizes="144x144" href="<?= Root('i/image/touch_icon/favicon_144x144.png')?>" />
@@ -21,11 +21,12 @@
         <link rel="icon" href="<?= Root('favicon.ico')?>" type="image/x-icon" />
         <link rel="shortcut icon" href="<?= Root('favicon.ico')?>" type="image/x-icon" />
 
+        <link rel="manifest" href="/manifest.webmanifest">
         <meta http-equiv="cleartype" content="on">
 
-        <link rel="stylesheet" type="text/css" href="<?= Root('i/css/dev/funcs.css')?>" />
 
         <script src="<?= Root("i/js/dev/jquery-2.0.3.min.js")?>" ></script>
+        <script src="<?= RootCacheJS("script/dist/core.js") ?>"></script>
 
 <!--        <?php /*IncludeCom('dev/jquery')*/?> -->
         <?php IncludeCom('dev/font_ptsans')?>
@@ -33,7 +34,7 @@
 
         <link rel="stylesheet" type="text/css" href="<?= Root('i/css/dev/bootstrap5/bootstrap.css')?>" />
         <link rel="stylesheet" type="text/css" href="<?= Root('i/css/dev/bootstrap-icons/bootstrap-icons.css')?>" />
-        <link rel="stylesheet" type="text/css" href="<?= Root('i/css/main_tpl.css')?>" />
+        <link rel="stylesheet" type="text/css" href="<?= RootCacheJS('script/dist/main.css')?>" />
 
         <meta name="yandex-verification" content="66de0a468e59b81b" />
 
@@ -49,7 +50,7 @@
                 }
 
             // Global version needs to force reload scripts from server.
-            globalVersion = <?= $g_config['engine_version'] ?>;
+            globalVersion = <?= json_encode(is_readable(BASEPATH . 'script/dist/version.txt') ? trim(file_get_contents(BASEPATH . 'script/dist/version.txt')) : (string)$g_config['engine_version']) ?>;
         </script>
     </head>
     <body>

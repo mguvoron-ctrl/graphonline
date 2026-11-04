@@ -1,0 +1,22 @@
+{
+  "name": "graphonline",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-isolation=none tests/unit/*.test.cjs",
+    "test:browser": "playwright test",
+    "benchmark": "node tools/benchmark.mjs",
+    "check": "npm run typecheck && npm run build && npm test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "esbuild": "0.25.12",
+    "less": "4.9.1",
+    "typescript": "5.9.3"
+  }
+}

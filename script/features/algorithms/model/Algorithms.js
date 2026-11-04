@@ -183,6 +183,13 @@ class ProcessingMessage
       this.algorithm_object = algorithm_object;
       this.processing_index = 0;
       this.original_message = this.algorithm_object.message;
+      GraphOnline.status("computing");
+      this.cancelButton = document.createElement("button");
+      this.cancelButton.type = "button";
+      this.cancelButton.textContent = GraphOnline.translate("cancel");
+      this.cancelButton.className = "btn btn-sm btn-outline-secondary";
+      this.cancelButton.onclick = () => this.algorithm_object.app.algorithmRunner?.cancel();
+      document.getElementById("document-status").append(this.cancelButton);
       this.processing_timer = setInterval(function() 
       {
           this.processing_index = (this.processing_index + 1) % 3;
@@ -191,10 +198,13 @@ class ProcessingMessage
       }.bind(this), 500);
     }
 
-    stop() {
-        this.algorithm_object.message = this.original_message;
-        this.algorithm_object.app.updateMessage();
+    stop(update = true) {
+        if (update) {
+            this.algorithm_object.message = this.original_message;
+            this.algorithm_object.app.updateMessage();
+        }
         clearInterval(this.processing_timer);
+        this.cancelButton.remove();
     }
 }
 
@@ -288,42 +298,27 @@ BaseAlgorithmEx.prototype.CalculateAlgorithm = function(algorithmName, otherPara
         resultCallback(pathObjects, properties, result);
     };
 
-    var callCGIAlgorithms = function ()
-    {
-        var queryString = algorithmName + "=cgiInput&report=xml";
-        otherParams.forEach ( (param) => queryString += "&" + param.name + "=" + param.value);
-        $.ajax({
-            type: "POST",
-            url: "/" + SiteDir + "cgi-bin/GraphCGI.exe?" + queryString,
-            data: xml,
-            dataType: "text",
-            })
-        .done(function( msg )
-            {
-                processResult(msg);
-            });
-    };
-
+    const generation = this.app.algorithmGeneration;
+    const requestId = this.app.algorithmRequest = (this.app.algorithmRequest || 0) + 1;
     if (this.app.isSupportEmscripten()) {
-        console.log("Use Emscripten");
-        var delimiter = "<s\\emscript_split\\s>";
-        var processData = algorithmName + delimiter + xml + 
-                          delimiter + "report" + delimiter + "xml";
-        otherParams.forEach ( (param) => processData += delimiter + param.name + delimiter + param.value);
-        var res = {};
-        try {
-            res = this.app.processEmscripten(processData);
-        }
-        catch (error) {
-            userAction("emscripten_error_" + algorithmName);
-            console.log("Error on Emscripten: " + error + "\n" + error.stack);
-            callCGIAlgorithms();
-            return true;
-        }
-        processResult(res);
+        const delimiter = "<s\\emscript_split\\s>";
+        let processData = algorithmName + delimiter + xml + delimiter + "report" + delimiter + "xml";
+        otherParams.forEach(param => processData += delimiter + param.name + delimiter + param.value);
+        this.app.processEmscripten(processData).then(response => {
+            if (generation !== this.app.algorithmGeneration || requestId !== this.app.algorithmRequest) { processing_message.stop(false); return; }
+            processResult(response);
+        }).catch(error => {
+            const current = generation === this.app.algorithmGeneration && requestId === this.app.algorithmRequest;
+            processing_message.stop(current);
+            if (!current) return;
+            this.message = GraphOnline.translate(error.name === "AbortError" ? "cancelled" : "algorithmError");
+            GraphOnline.status(error.name === "AbortError" ? "cancelled" : "algorithmError", error.name !== "AbortError");
+            this.app.updateMessage();
+        });
     } else {
-        console.log("Use new CGI");
-        callCGIAlgorithms();
+        processing_message.stop();
+        this.message = GraphOnline.translate("algorithmError");
+        GraphOnline.status("algorithmError", true);
     }
 
     return true;

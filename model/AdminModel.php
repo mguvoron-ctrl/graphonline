@@ -1,68 +1,51 @@
 <?php
-
-    /**
-     * Модель для авторизации администратора
-     */
-    class AdminModel
-    {
-        const REMEMBER_PERIOD = 604800; // Время хранения авторизации (в секундах)
-
-        public function MakeHash($pwd)
-        {
-            global $g_config;
-            return md5($pwd . $g_config['admin_sector']['salt']);
+/** Server-side admin sessions. Public deployment has no default password. */
+class AdminModel
+{
+    private function startSession() {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_name('graphonline_admin');
+            session_start(array('use_strict_mode' => 1, 'cookie_httponly' => true,
+                'cookie_secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'cookie_samesite' => 'Strict'));
         }
-
-        public function IsAuth()
-        {
-            global $g_config;
-            $login    = isset($_COOKIE['auto_admin_auth_login'])    ? $_COOKIE['auto_admin_auth_login']    : '';
-            $pwd_hash = isset($_COOKIE['auto_admin_auth_pwd_hash']) ? $_COOKIE['auto_admin_auth_pwd_hash'] : '';
-
-            return $login    == $g_config['admin_sector']['def_login'] && 
-                   $pwd_hash == $this->MakeHash($g_config['admin_sector']['def_pwd']);
+        if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+    public function IsAuth() {
+        $this->startSession();
+        return !empty($_SESSION['admin']) && ($_SESSION['expires'] ?? 0) > time();
+    }
+    public function Token() { $this->startSession(); return $_SESSION['csrf']; }
+    public function Login($login, $password) {
+        $this->startSession();
+        if (($_SESSION['retry_after'] ?? 0) > time()) return false;
+        $hash = getenv('GRAPHONLINE_ADMIN_PASSWORD_HASH');
+        $valid = $hash && hash_equals(getenv('GRAPHONLINE_ADMIN_LOGIN') ?: 'admin', $login) && password_verify($password, $hash);
+        if ($valid) {
+            session_regenerate_id(true);
+            $_SESSION['admin'] = true; $_SESSION['expires'] = time() + 3600;
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+            return true;
         }
-
-        // Авторизует пользователя, что бы при будущих обращениях он проходил как авторизованный при успехе вернёт true и запомнит что авторизован, иначе false
-        public function Login($login, $pwd_hash)
-        {
-            global $g_config;
-            if (empty($login) || empty($pwd_hash))
-            {
-                trigger_error("Can not login: login or pwd_hash are empty!", E_USER_ERROR);
-            }
-
-            $ret = false;
-            if ($login    == $g_config['admin_sector']['def_login'] && 
-                $pwd_hash == $this->MakeHash($g_config['admin_sector']['def_pwd']))
-            {
-                setcookie('auto_admin_auth_login',    $login,     time() + self::REMEMBER_PERIOD, '/', DOMAIN_COOKIE);
-                setcookie('auto_admin_auth_pwd_hash', $pwd_hash,  time() + self::REMEMBER_PERIOD, '/', DOMAIN_COOKIE);
-                $ret = true;
-            }
-            return $ret;
+        $_SESSION['retry_after'] = time() + 2;
+        return false;
+    }
+    public function ChkLogin() {
+        global $g_config;
+        $this->startSession();
+        if (!getenv('GRAPHONLINE_ADMIN_PASSWORD_HASH')) { http_response_code(503); exit('Admin access is disabled until configured.'); }
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !hash_equals($this->Token(), (string)($_POST['csrf'] ?? ''))) {
+            http_response_code(403); exit('Invalid request token');
         }
-
-        // Проверяет авторизацию, и если человек не авторизован, то редиректим
-        public function ChkLogin()
-        {
-            global $g_config;
-            $query = strtolower(GetQuery());
-
-            if (!$this->IsAuth())
-            {
-                if (SiteRoot($query) !== SiteRoot($g_config['admin_sector']['after_logout_page']))
-                {
-                    header("Location: " . SiteRoot($g_config['admin_sector']['after_logout_page']));
-                    exit();
-                }
-            }
+        $isLogin = SiteRoot(strtolower(GetQuery())) === SiteRoot($g_config['admin_sector']['after_logout_page']);
+        if (!$this->IsAuth() && !$isLogin) { header('Location: ' . SiteRoot($g_config['admin_sector']['after_logout_page'])); exit; }
+        // Legacy GET actions can modify files. Require POST even with an authenticated session.
+        if ($this->IsAuth() && preg_match('~admin/(?:pack|logout|.*_add)$~', GetQuery()) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            http_response_code(405); exit('Use a CSRF-protected POST request');
         }
-
-        public function Logout()
-        {
-            setcookie('auto_admin_auth_login',    '', -1, '/', DOMAIN_COOKIE);
-            setcookie('auto_admin_auth_pwd_hash', '', -1, '/', DOMAIN_COOKIE);
-        }
-    };
-?>
+    }
+    public function Logout() {
+        $this->startSession(); $_SESSION = array(); session_destroy();
+        setcookie(session_name(), '', array('expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict'));
+    }
+}

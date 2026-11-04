@@ -1,0 +1,28 @@
+name: Check
+on: [push, pull_request]
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, mbstring, zlib
+          ini-values: short_open_tag=On
+      - run: npm ci
+      - run: npm run check
+      - run: php -d zend.assertions=1 -d assert.exception=1 tests/php/auth.php
+      - run: find backend core model src tpl lang -name '*.php' -print0 | xargs -0 -n1 php -d short_open_tag=On -l
+      - run: git diff --exit-code -- script/dist service-worker.js 'script/**/*.cache'
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure
+          path: test-results

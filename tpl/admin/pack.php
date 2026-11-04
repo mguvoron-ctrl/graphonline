@@ -2,13 +2,13 @@
 <head>
 <script src="/script/shared/config.js?v=<?= $g_config['engine_version'] ?>" ></script>
 <script src="/script/shared/loader.js?v=<?= $g_config['engine_version'] ?>" ></script>
-<script src="<?= $_GET["target"] ?>" ></script>
+<script src="<?= htmlspecialchars((string)($_GET["target"] ?? ""), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?>" ></script>
 <script>
   setTimeout(
   () => {
       document.getElementById("state").innerHTML = "Saving files";
       const xhr = new XMLHttpRequest();      
-      xhr.open("GET", "pack?cacheFiles=" + moduleLoader.syncLoaded.toString() + "&target=" + "<?=  $_GET["target"] ?>");
+      xhr.open("GET", "pack?cacheFiles=" + moduleLoader.syncLoaded.toString() + "&target=" + "<?= htmlspecialchars((string)($_GET["target"] ?? ""), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?>");
       xhr.send();
       xhr.onload = () => {
         if (xhr.readyState == 4 && xhr.status == 200) {

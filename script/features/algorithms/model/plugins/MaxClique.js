@@ -71,7 +71,7 @@ MaxClique.prototype.resultCallback = function(pathObjects, properties, results)
         {
             let object = pathObjects[i];
             if (object instanceof BaseVertex) {
-                this.message = this.message + object.mainText + ((vertexIndex < size - 1) ? ", " : ".");
+                this.message = this.message + gEncodeToHTML(object.mainText) + ((vertexIndex < size - 1) ? ", " : ".");
                 vertexIndex++;
             }
             this.selectedObjects[object.id] = 1;

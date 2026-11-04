@@ -68,7 +68,7 @@ FindMaxFlow.prototype.resultCallback = function(pathObjects, properties, results
     this.pathObjects = pathObjects;
     this.properties = properties;
     
-    var bFound = results.length > 0 && results[0].value < 1E5 && (results[0].type == 1 || results[0].type == 2) && results[0].value * 1 > 0.0;
+    var bFound = results.length > 0 && Number.isFinite(Number(results[0].value)) && (results[0].type == 1 || results[0].type == 2) && results[0].value * 1 > 0.0;
     
     var maxFlow = results[0].value * 1;
     
@@ -118,7 +118,7 @@ FindMaxFlow.prototype.resultCallback = function(pathObjects, properties, results
         }
         this.selectedEdges = pathObjects;
     
-        this.message = g_maxFlowResult.replace("%1", (maxFlow).toString()).replace("%2", this.firstObject.mainText).replace("%3", this.secondObject.mainText);
+        this.message = g_maxFlowResult.replace("%1", (maxFlow).toString()).replace("%2", gEncodeToHTML(this.firstObject.mainText)).replace("%3", gEncodeToHTML(this.secondObject.mainText));
         
         this.selectedObjects[this.secondObject.id] = 3;
         this.selectedObjects[this.firstObject.id]  = 1;
@@ -128,7 +128,7 @@ FindMaxFlow.prototype.resultCallback = function(pathObjects, properties, results
     }
     else
     {
-        this.message = g_flowNotExists.toString().replace("%1", this.firstObject.mainText).replace("%2", this.secondObject.mainText);
+        this.message = g_flowNotExists.toString().replace("%1", gEncodeToHTML(this.firstObject.mainText)).replace("%2", gEncodeToHTML(this.secondObject.mainText));
     }
     this.secondObject = null;
     this.firstObject = null;

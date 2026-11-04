@@ -23,7 +23,7 @@ function Graph()
 };
 
 // infinity
-Graph.prototype.infinity = 1E8;
+Graph.prototype.infinity = Infinity;
 // Max vertices
 Graph.prototype.maxVertices = 1000;
 // Offset for edges ids.
@@ -31,9 +31,12 @@ Graph.prototype.edgesOffset = 10000;
 
 Graph.prototype.AddNewVertex = function(vertex)
 {
-	if (this.vertices.length <= this.maxVertices)
+    if (this.vertices.length >= this.maxVertices) return -1;
+	if (this.vertices.length < this.maxVertices)
 	{
-		vertex.SetId (this.uidGraph);
+		while (this.FindVertex(this.uidGraph)) this.uidGraph++;
+        if (this.uidGraph >= 10000) { this.uidGraph = 0; while (this.FindVertex(this.uidGraph)) this.uidGraph++; }
+        vertex.SetId (this.uidGraph);
 		this.uidGraph = this.uidGraph + 1;
 		this.vertices.push(vertex);
 	}
@@ -148,7 +151,7 @@ Graph.prototype.FindVertex = function(id)
 	var res = null;
 	for (var i = 0; i < this.vertices.length; i++)
 	{
-		if (this.vertices[i].id == id)
+		if (String(this.vertices[i].id) === String(id))
 		{
 			res = this.vertices[i];
 			break;
@@ -220,10 +223,10 @@ Graph.prototype.FindEdgeMin = function(id1, id2)
 		if ((edge.vertex1.id == id1 && edge.vertex2.id == id2)
 		     || (!edge.isDirect && edge.vertex1.id == id2 && edge.vertex2.id == id1))
 		{
-            if (edge.weight < minWeight)
+            if (edge.GetWeight() < minWeight)
             {
                 res       = edge;
-                minWeight = edge.weight;
+                minWeight = edge.GetWeight();
             }
 		}
 	}
@@ -234,17 +237,17 @@ Graph.prototype.FindEdgeMin = function(id1, id2)
 Graph.prototype.FindEdgeMax = function(id1, id2)
 {
 	var res       = null;
-    var maxWeight = -this.infinity;
+    var maxWeight = -Infinity;
 	for (var i = 0; i < this.edges.length; i++)
 	{
         var edge = this.edges[i];
 		if ((edge.vertex1.id == id1 && edge.vertex2.id == id2)
 		     || (!edge.isDirect && edge.vertex1.id == id2 && edge.vertex2.id == id1))
 		{
-            if (edge.weight > maxWeight)
+            if (edge.GetWeight() > maxWeight)
             {
                 res       = edge;
-                maxWeight = edge.weight;
+                maxWeight = edge.GetWeight();
             }
 		}
 	}
@@ -262,10 +265,10 @@ Graph.prototype.FindEdgeMinIgnoreDirection = function(id1, id2)
 		if ((edge.vertex1.id == id1 && edge.vertex2.id == id2)
 		     || (edge.vertex1.id == id2 && edge.vertex2.id == id1))
 		{
-            if (edge.weight < minWeight)
+            if (edge.GetWeight() < minWeight)
             {
                 res       = edge;
-                minWeight = edge.weight;
+                minWeight = edge.GetWeight();
             }
 		}
 	}
@@ -293,11 +296,12 @@ Graph.prototype.GetAdjacencyMatrixStr = function (res_columns_width)
 {
 	var matrix = "";
 	let cols_width = [];
+    const index = new GraphOnline.GraphIndex(this.vertices, this.edges);
 
 	let get_edge_weight_str = (vertex_1, vertex_2) => {
 		var res = "";
 
-		var edge = this.FindEdgeMin (vertex_1.id, vertex_2.id);
+		var edge = index.minimum(vertex_1.id, vertex_2.id);
 		if (edge != null)
 		{
 			res += edge.weight;
@@ -341,7 +345,7 @@ Graph.prototype.GetAdjacencyMatrixStr = function (res_columns_width)
 			}
 			matrix += weight_str;
 			
-			if (j != this.vertices.length)
+			if (j != this.vertices.length - 1)
 			{
 				matrix += ", ";
 			}
@@ -357,31 +361,13 @@ Graph.prototype.GetAdjacencyMatrixStr = function (res_columns_width)
 	return matrix;
 }
 
-Graph.prototype.GetAdjacencyMatrix = function ()
-{
-    var matrix = [];
-    
-    for (var i = 0; i < this.vertices.length; i ++)
-    {
-        matrix.push([]);
-        var v1 = this.vertices[i];
-        for (var j = 0; j < this.vertices.length; j ++)
-        {
-            var v2 = this.vertices[j];
-            var edge = this.FindEdgeMin(v1.id, v2.id);
-            if (edge != null)
-            {
-                matrix[i][j] = edge.GetWeight();
-            }
-            else
-            {
-                matrix[i][j] = this.infinity;               
-            }
-        }
-    }
-    
-    return matrix;
-}
+Graph.prototype.GetAdjacencyMatrix = function () {
+    const index = new GraphOnline.GraphIndex(this.vertices, this.edges);
+    return this.vertices.map(from => this.vertices.map(to => {
+        const edge = index.minimum(from.id, to.id);
+        return edge ? edge.GetWeight() : this.infinity;
+    }));
+};
 
 Graph.prototype.TestAdjacencyMatrix = function (matrix, rowsObj, colsObj, separator)
 {
@@ -402,6 +388,7 @@ Graph.prototype.TestAdjacencyMatrix = function (matrix, rowsObj, colsObj, separa
 		}
 	}
 	
+	if (rowsObj.rows.length > this.maxVertices) return false;
 	colsObj.cols = [];
 	for (var i = 0; i < rowsObj.rows.length; i++)
 	{
@@ -413,7 +400,7 @@ Graph.prototype.TestAdjacencyMatrix = function (matrix, rowsObj, colsObj, separa
 				colsObj.cols[i].splice(j--, 1);
 			}
 		}
-		if (colsObj.cols[i].length != rowsObj.rows.length)
+		if (colsObj.cols[i].some(value => value.trim() === "" || !Number.isFinite(Number(value))) || colsObj.cols[i].length != rowsObj.rows.length)
 		{
 			bGoodFormat = false;
 			break;
@@ -544,8 +531,8 @@ Graph.prototype.VerticesReposition = function (viewportSize, newVertices)
    var edgesMatrix = {};   
    for (var i = 0; i < this.edges.length; i++)
    {  
-        edgesMatrix[this.edges[i].vertex1.id + this.edges[i].vertex2.id * 1000] = 1;
-        edgesMatrix[this.edges[i].vertex2.id + this.edges[i].vertex1.id * 1000] = 1;
+        edgesMatrix[this.edges[i].vertex1.id + ":" + this.edges[i].vertex2.id] = 1;
+        edgesMatrix[this.edges[i].vertex2.id + ":" + this.edges[i].vertex1.id] = 1;
    }
    
    var startAngel = Math.random() * 180.0;
@@ -589,7 +576,7 @@ Graph.prototype.VerticesReposition = function (viewportSize, newVertices)
          for(j = 0; j < this.vertices.length; j++) // loop through edges
          {
             otherVertex = this.vertices[j];
-            if (edgesMatrix.hasOwnProperty(currentVertex.object.id + 1000 * otherVertex.id))
+            if (edgesMatrix.hasOwnProperty(currentVertex.object.id + ":" + otherVertex.id))
             {
                 var distance = currentVertex.object.position.distance(otherVertex.position);
                 
@@ -843,6 +830,7 @@ Graph.prototype.TestIncidenceMatrix = function (matrix, rowsObj, colsObj, separa
 			rowsObj.rows.splice(j--, 1);
 		}
 	}
+	if (rowsObj.rows.length > this.maxVertices) return false;
 	colsObj.cols = [];
 	var columnCount = 0;
 	for (var i = 0; i < rowsObj.rows.length; i++)
@@ -858,8 +846,9 @@ Graph.prototype.TestIncidenceMatrix = function (matrix, rowsObj, colsObj, separa
 		if (i == 0)
 		{
 			columnCount = colsObj.cols[i].length;
+            if (columnCount > 10000) return false;
 		}
-		if (colsObj.cols[i].length != columnCount)
+		if (colsObj.cols[i].some(value => value.trim() === "" || !Number.isFinite(Number(value))) || colsObj.cols[i].length != columnCount)
 		{
 			bGoodFormat = false;
 			break;
@@ -1099,7 +1088,7 @@ Graph.prototype.SplitMatrixString = function (line, separator)
 }
 
 
-Graph.prototype.SaveToXML = function (additionalData)
+Graph.prototype.SaveToXML = function (additionalData = "")
 {
 	var mainHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><graphml>";
 	var header   = "<graph id=\"Graph\" uidGraph=\"" + this.uidGraph + "\"" + " uidEdge=\"" + this.uidEdge + "\">";
@@ -1131,75 +1120,31 @@ Graph.prototype.SaveToXML = function (additionalData)
 
 Graph.prototype.LoadFromXML = function (xmlText, additionalData)
 {
-	xmlDoc = $.parseXML( xmlText );
-	var $xml = $( xmlDoc );
-
-	$graphs = $xml.find( "graph" );	
-
-	var loadedGraphId = 0;
-	var loadedEdgeId = 0;
-	var defaultLoadEdges = "";
-    
-	$graphs.each(function(){
-		loadedGraphId = parseInt($(this).attr('uidGraph'));
-		loadedEdgeId  = parseInt($(this).attr('uidEdge'));
-		defaultLoadEdges = $(this).attr('edgedefault');
-	});
-    
-    // Backward compatibility
-    if (isNaN(loadedEdgeId))
-    {
-        loadedEdgeId = this.edgesOffset;
-    } else if (loadedEdgeId < this.edgesOffset)
-	{
-		loadedEdgeId = this.edgesOffset;
-	}
-
-	if (defaultLoadEdges != "directed" && defaultLoadEdges != "undirected")
-	{
-		defaultLoadEdges = "undirected";
-	}
-
-	this.uidGraph = loadedGraphId;
-	this.uidEdge  = loadedEdgeId;
-
-	$nodes = $xml.find( "node" );	
-
-	var vertices = [];
-    
-	$nodes.each(function(){
-		var vertex = new BaseVertex();
-		vertex.LoadFromXML($(this));
-        vertices.push(vertex);
-	});
-	this.vertices = vertices;
-
-	$edges = $xml.find( "edge" );
-
-	var edges = [];	
-	var graph = this;
-	$edges.each(function(){
-		var edge = new BaseEdge();
-		edge.LoadFromXML($(this), graph, defaultLoadEdges);
-		// Fix case with wrong id.
-		if (edge.id < graph.uidEdge) {
-			edge.id = graph.uidEdge;
-			graph.uidEdge++;
-		}
-		edges.push(edge);
-	});
-
-	this.edges = edges;
-    
-    $additional = $xml.find( "additional" );
-    if ($additional.length != 0 && additionalData != null)
-    {
-        additionalData["data"] = $additional.attr('data');
-    }
-    
+    const imported = GraphOnline.parseGraphML(xmlText);
+    const vertexMap = new Map();
+    const vertices = imported.nodes.map(element => {
+        const vertex = new BaseVertex();
+        vertex.LoadFromXML($(element));
+        vertexMap.set(vertex.id, vertex);
+        return vertex;
+    });
+    // Build and validate before replacing the current graph.
+    const edges = imported.edges.map(record => {
+        const edge = new BaseEdge();
+        edge.LoadFromXML($(record.element), {FindVertex: id => vertexMap.get(String(id))}, imported.directed ? "directed" : "undirected");
+        edge.id = record.id;
+        edge.weight = record.weight;
+        edge.useWeight = record.weighted;
+        return edge;
+    });
+    this.vertices = vertices;
+    this.edges = edges;
+    this.uidGraph = imported.nextVertex;
+    this.uidEdge = imported.nextEdge;
+    if (additionalData) additionalData.data = imported.additional;
     this.isMultiGraph = this.checkMutiGraph();
     this.hasNegativeWeight = this.checkNegativeWeight();
-}
+};
 
 Graph.prototype.hasDirectEdge = function ()
 {

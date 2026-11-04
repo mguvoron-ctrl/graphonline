@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/cli_only.php";
 // File remove old images from all sub folder of this folder.
     
     // maxDate in hours.

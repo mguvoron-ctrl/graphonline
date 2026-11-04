@@ -239,6 +239,7 @@
             <a class="btn btn-sm btn-outline-secondary" href="javascript:;" role="button" id="GraphUndo">
               <span class="bi bi-arrow-left menu-text"></span><span class="hidden-phone menu-text"> <?= L('undo')?> <sub style="color:#AAAAAA">crtl+z</sub></span>
             </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="GraphRedo" style="display:none" aria-label="Redo"><span class="bi bi-arrow-clockwise"></span></button>
           </li>
           <!--
               <? if (!$wasVote && count($voteTopics) > 0): ?>

@@ -57,7 +57,7 @@ a-b
 a-c
 b-c
 <?php else: ?>
-<?= $_GET["pair"] ?>
+<?= htmlspecialchars((string)($_GET["pair"] ?? ""), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") ?>
 <?php endif;?></textarea>
                 </form>
             </div>

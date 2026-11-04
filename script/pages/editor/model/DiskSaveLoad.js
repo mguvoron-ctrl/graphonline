@@ -1,80 +1,19 @@
-// Disk save load
-
-
+// Network boundary: callers only receive validated successful responses.
 var DiskSaveLoad = function () {};
-
-DiskSaveLoad.LoadGraphFromDisk = function (graphName, callback)
-{
-	$.ajax({
-	type: "GET",
-	url: "/" + SiteDir + "backend/loadGraph.php?name=" + graphName
-	})
-	.done(callback);
-}
-
-DiskSaveLoad.SaveSVGGraphOnDisk = function (imageName, svgText, callback)
-{
-    $.ajax({
-     type: "POST",
-     url: "/" + SiteDir + "backend/saveSvg.php?name=" + imageName,
-     data: svgText,
-     dataType: "text",
-     contentType: "text/xml; charset=utf-8",
-     success: callback
-     });
-                          
-    return imageName;
-}
-
-DiskSaveLoad.SaveGraphOnDisk = function (savedGraphName, graphAsString, callback)
-{
-	$.ajax({
-	type: "POST",
-	url: "/" + SiteDir + "backend/saveGraph.php?name=" + savedGraphName,
-	data: graphAsString,
-	dataType: "text"
-	})
-	.done(callback);
-}
-
-DiskSaveLoad.SaveGraphImageOnDisk = function (imageName, rectParams, imageBase64Data, callback)
-{
-    $.ajax({
-     type: "POST",
-     url: "/" + SiteDir + "backend/saveImage.php?name=" + imageName + rectParams,
-     data: {
-           base64data : imageBase64Data
-     },
-     dataType: "text",
-     success: callback
-     });
-}
-
-DiskSaveLoad.SaveAutoSaveGraphOnDisk = function (savedGraphName, graphAsString, callback)
-{
-	$.ajax({
-	type: "POST",
-	url: "/" + SiteDir + "backend/saveGraph.php?name=autosave_" + savedGraphName,
-	data: graphAsString,
-	dataType: "text"
-	})
-	.done(callback);
-}
-
-DiskSaveLoad.LoadAutoSaveGraphFromDisk = function (graphName, callback)
-{
-	$.ajax({
-	type: "GET",
-	url: "/" + SiteDir + "backend/loadGraph.php?name=autosave_" + graphName
-	})
-	.done(callback);
-}
-
-DiskSaveLoad.RemoveAutoSaveGraphFromDisk = function (graphName, callback)
-{
-	$.ajax({
-	type: "GET",
-	url: "/" + SiteDir + "backend/removeGraph.php?name=autosave_" + graphName
-	})
-	.done(callback);
-}
+DiskSaveLoad.request = function(method, endpoint, name, data, callback) {
+    return new Promise((resolve, reject) => {
+        $.ajax({type: method, url: "/" + SiteDir + "backend/" + endpoint + "?name=" + encodeURIComponent(name),
+            data: data, dataType: "text", contentType: "application/xml; charset=utf-8", timeout: 15000})
+        .done(response => {
+            if (method === "POST" && response.trim() !== "OK") {
+                GraphOnline.status("saveError", true); reject(new Error("Invalid save response")); return;
+            }
+            try { if (callback) callback(response); resolve(response); }
+            catch (error) { reject(error); }
+        })
+        .fail(() => { GraphOnline.status(method === "POST" ? "saveError" : "loadError", true); reject(new Error("Request failed")); });
+    });
+};
+DiskSaveLoad.LoadGraphFromDisk = (name, callback) => DiskSaveLoad.request("GET", "loadGraph.php", name, undefined, callback);
+DiskSaveLoad.SaveGraphOnDisk = (name, xml, callback) => DiskSaveLoad.request("POST", "saveGraph.php", name, xml, callback);
+DiskSaveLoad.LoadAutoSaveGraphFromDisk = (name, callback) => DiskSaveLoad.LoadGraphFromDisk("autosave_" + name, callback);

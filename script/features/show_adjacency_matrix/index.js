@@ -78,8 +78,8 @@ ShowAdjacencyMatrix.prototype.show = function()
 		col_text = col_text.padStart(col_width, " ");
 		topText += col_text + "  ";
 	}
-	$("#adjacencyMatrix_top_text_text").html(topText);
-	$("#adjacencyMatrix_side_text_text").html(sideText + "\n");
+	$("#adjacencyMatrix_top_text_text").text(topText);
+	$("#adjacencyMatrix_side_text_text").text(sideText + "\n");
 	
     if (this.app.graph.isMulti())
         $( "#AdjacencyMatrixMultiGraphDesc").show();

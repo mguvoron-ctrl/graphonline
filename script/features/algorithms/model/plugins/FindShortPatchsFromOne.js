@@ -65,7 +65,7 @@ FindShortPatchsFromOne.prototype.setResultMessage = function()
 {
     if (this.nSubGraphCount > 0)
     {
-        this.message = g_distanceFrom + this.firstObject.mainText + 
+        this.message = g_distanceFrom + gEncodeToHTML(this.firstObject.mainText) +
             g_to + this.lastVertexInPath[this.nSubgraphIndex] + g_are + 
         this.lengthOfPath[this.nSubgraphIndex] + " <select style=\"float:right\" id=\"enumSubgraphs\"></select>";        
     }
@@ -147,7 +147,7 @@ FindShortPatchsFromOne.prototype.messageWasChanged = function()
       for (var i = 0; i < this.nSubGraphCount; i++)
       {
           $('#enumSubgraphs').append("<option value=\"" + i + "\"" + (self.nSubgraphIndex==i ? "selected": "") + ">" + 
-                                       g_pathTo + this.lastVertexInPath[i]  +
+                                       g_pathTo + gEncodeToHTML(this.lastVertexInPath[i])  +
                                   "</option>");
       }
 

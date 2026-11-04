@@ -101,7 +101,7 @@ FindShortPathNew.prototype.resultCallback = function(pathObjects, properties, re
         this.message = this.message + ": ";
         for (var i = 0; i < nodesPath.length; i++)
         {
-            this.message = this.message + this.graph.FindVertex(nodesPath[i]).mainText + ((i < nodesPath.length - 1) ? "&rArr;" : "");
+            this.message = this.message + gEncodeToHTML(this.graph.FindVertex(nodesPath[i]).mainText) + ((i < nodesPath.length - 1) ? "&rArr;" : "");
         }
         
         this.message = this.message + " <select style=\"float:right\" id=\"enumReport\"></select>";
@@ -192,7 +192,7 @@ FindShortPathNew.prototype.resultCallbackBellmanFord = function(pathObjects, pro
         this.message = this.message + ": ";
         for (var i = 0; i < pathNodes.length; i++)
         {
-            this.message = this.message + this.graph.FindVertex(pathNodes[i]).mainText + ((i < pathNodes.length - 1) ? "&rArr;" : "");
+            this.message = this.message + gEncodeToHTML(this.graph.FindVertex(pathNodes[i]).mainText) + ((i < pathNodes.length - 1) ? "&rArr;" : "");
         }
 
         for (let targetId in dataForTargetVertex) 

@@ -84,12 +84,12 @@ FindAllShortestPathes.prototype.setResultMessage = function()
         var currentPath = "";
         var first = true;
         this.foundPaths[this.nSubgraphIndex].forEach((nodeId) => {
-            currentPath += (first ? "" : "⇒") + this.graph.FindVertex(nodeId).mainText;
+            currentPath += (first ? "" : "⇒") + gEncodeToHTML(this.graph.FindVertex(nodeId).mainText);
             first = false;
         });
 
-        this.message = g_numberOfShortestPathesFrom + this.firstObject.mainText + 
-            g_to + this.secondObject.mainText + g_are + 
+        this.message = g_numberOfShortestPathesFrom + gEncodeToHTML(this.firstObject.mainText) +
+            g_to + gEncodeToHTML(this.secondObject.mainText) + g_are +
             this.nSubGraphCount + " (" + g_length_is + this.min_len + ")" +". " + g_pathN + (1 + parseInt(this.nSubgraphIndex)) + ": " + currentPath + 
             " <select style=\"float:right\" id=\"enumSubgraphs\"></select>";
     }

@@ -71,7 +71,7 @@ Application.prototype.status = {};
 // Graph name length
 Application.prototype.graphNameLength = 16;
 // Max undo stack size
-Application.prototype.maxUndoStackSize = 8;
+Application.prototype.maxUndoStackSize = 100;
 // Max autosave graph size for cookie.
 Application.prototype.maxAutosaveSizeForCookie = 2000; // Max cookie size is at least 4096.
 // Auto save time interval
@@ -105,6 +105,7 @@ Application.prototype.getMousePos = function(canvas, e)
 
 Application.prototype.redrawGraph = function()
 {
+    this.scheduleAutoSave();
     if (!this.isTimerRender)
     {
         this.listener.OnRenderToEditor();
@@ -701,12 +702,15 @@ Application.prototype.FindAllEdges = function(id1, id2)
 
 Application.prototype.SetHandler = function(newHandler)
 {
+    this.algorithmGeneration = (this.algorithmGeneration || 0) + 1;
+    if (this.algorithmRunner && this.algorithmRunner.busy) this.algorithmRunner.cancel();
     if (this.handler)
     {
         this.handler.RestoreAll();
     } 
 
     this.handler = newHandler;
+    if (newHandler instanceof AlgorithmGraphHandler) newHandler.UpdateResultAndMessage();
 
     this.ToDefaultStateAndRedraw();
 }
@@ -726,8 +730,10 @@ Application.prototype.getParameterByName = function (name)
     return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
-Application.prototype.onPostLoadEvent = function()
+Application.prototype.onPostLoadEvent = async function()
 {
+    const container = document.getElementById("mainContainer");
+    container.inert = true;
     this.SetEnumVerticesType(document.cookie.replace(/(?:(?:^|.*;\s*)enumType\s*\=\s*([^;]*).*$)|^.*$/, "$1"));
     var edgeEnumCookie = /(?:^|;\s*)edgeEnumType\s*=\s*([^;]*)/.exec(document.cookie);
     this.SetEnumEdgesType(edgeEnumCookie ? edgeEnumCookie[1] : "");
@@ -800,48 +806,39 @@ Application.prototype.onPostLoadEvent = function()
 	    wasLoad = true;
     }    
 
-    if (!wasLoad)
-    {
-    	var graphName = this.getParameterByName("graph");
-        var is_user_graph = graphName.length > 0;
-	    if (!is_user_graph)
-	    {
-           graphName = document.cookie.replace(/(?:(?:^|.*;\s*)graphName\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-	    }
-
-        // Load from auto save only if it is graph name from cookie
-        // or name was empty.
-        if (!is_user_graph && this.hasAutoSave())
-        {
-            userAction("LoadGraphFromAutoSave");
-            this.loadAutoSave();
+    try {
+        if (!wasLoad) {
+            const name = this.getParameterByName("graph");
+            if (name) {
+                await DiskSaveLoad.LoadGraphFromDisk(name, xml => this.LoadGraphFromString(xml));
+                this.lastGraphName = name;
+            } else {
+                const draft = await GraphOnline.drafts.load();
+                if (draft) {
+                    this.LoadGraphFromString(draft.xml);
+                    this.lastGraphName = draft.reference;
+                    this.lastSavedAutoSave = draft.xml;
+                } else if (this.hasAutoSave() && this.getAutoSaveCookie() !== "local") {
+                    await this.getAutoSaveGraph(xml => this.LoadGraphFromString(xml));
+                } else {
+                    const previous = document.cookie.replace(/(?:(?:^|.*;\s*)graphName\s*=\s*([^;]*).*$)|^.*$/, "$1");
+                    if (/^[A-Za-z]{1,64}(?:_test)?$/.test(previous)) {
+                        await DiskSaveLoad.LoadGraphFromDisk(previous, xml => this.LoadGraphFromString(xml));
+                        this.lastGraphName = previous;
+                    }
+                }
+            }
         }
-        else if (graphName.length > 0)
-	    {
-            if (this.getAutoSaveRefGraphCookie() == graphName)
-            {
-                this.showSelectGraphDialog(graphName);
-                console.log("Show select graph dialog");
-                startAutoSave = false;
-            }
-            else
-            {
-                userAction("LoadGraphFromDisk");
-                this.LoadGraphFromDisk(graphName);
-            }
-	    }
-    }
+    } catch (error) { GraphOnline.status("loadError", true); }
 
-    if (this.undoStack.IsUndoStackEmpty())
-        document.getElementById('GraphUndo').style.display = 'none';
+    this.UpdateHistoryButtons();
 
     this.updateMessage();
     this.redrawGraph();
 
-    if (startAutoSave)
-    {
-        this.startAutoSaveTimer();
-    }
+    this.ready = true;
+    container.inert = false;
+    this.startAutoSaveTimer();
 }
 
 Application.prototype.onLoad = function()
@@ -870,7 +867,7 @@ Application.prototype.SetStatus = function(name, value)
 	this.status[name] = value;
 }
 
-Application.prototype.GetStatus = function()
+Application.prototype.GetStatus = function(name)
 {
 	return this.status[name];
 }
@@ -903,7 +900,6 @@ Application.prototype.SetAdjacencyMatrix = function (matrix, separator)
 	var c = {};
 	if (!this.TestAdjacencyMatrix(matrix, r, c, separator))
 	{
-		$.get( "/" + SiteDir + "backend/addFailedMatrix.php?text=adjacency&matrix=" + encodeURIComponent(matrix), function( data ) {;});
 		res = false;
 	}
 
@@ -920,7 +916,6 @@ Application.prototype.SetPair = function (pair)
 	var c = {};
 	if (!this.TestPair(pair))
 	{
-		$.get( "/" + SiteDir + "backend/addFailedMatrix.php?text=pair&matrix=" + encodeURIComponent(pair), function( data ) {;});
 		res = false;
 	}
 
@@ -952,7 +947,6 @@ Application.prototype.SetIncidenceMatrix = function (matrix)
 	var c = {};
 	if (!this.TestIncidenceMatrix(matrix, r, c))
 	{
-		$.get( "/" + SiteDir + "backend/addFailedMatrix.php?text=incidence&matrix=" + encodeURIComponent(matrix), function( data ) {;});
 		res = false;
 	}
 
@@ -1028,27 +1022,22 @@ Application.prototype.SetPairSmart = function (pair)
 }
 
 
-Application.prototype.SaveGraphOnDisk = function ()
+Application.prototype.SaveGraphOnDisk = function (callback)
 {
-	var graphAsString = this.graph.SaveToXML(this.SaveUserSettings());
-	var app = this;
+    const xml = this.DocumentXML();
+    const name = this.GetNewGraphName();
+    GraphOnline.status("saving");
+    return this.saveAutoSave(xml).then(() => DiskSaveLoad.SaveGraphOnDisk(name, xml)).then(() => {
+        this.savedGraphName = name;
+        this.lastGraphName = name;
+        document.cookie = "graphName=" + name + ";path=/;SameSite=Lax";
+        this.PushLastUsedGraph(name);
+        GraphOnline.status("published");
+        if (callback) callback(name);
+        return name;
+    }).catch(error => { GraphOnline.status("saveError", true); throw error; });
+};
 
-	if (this.savedGraphName.length <= 0)
-	{
-		this.savedGraphName = this.GetNewGraphName();
-	}
-
-    DiskSaveLoad.SaveGraphOnDisk(this.savedGraphName, graphAsString, function( msg ) 
-        {
-                document.cookie = "graphName=" + app.savedGraphName;
-                // Remove cookie after save, beacuse we have this graph name in cookies.
-                app.removeAutosave();
-                app.lastGraphName = app.savedGraphName; // Update last graph name after save.
-                // Update last used graphs.
-                app.PushLastUsedGraph(app.savedGraphName);
-        });
-}
-                          
 Application.prototype.SaveGraphImageOnDisk = function (showDialogCallback)
 {
     var imageName = this.GetNewName();
@@ -1138,7 +1127,10 @@ Application.prototype.LoadGraphFromString = function (str)
 
 Application.prototype.LoadNewGraphFromString = function (str)
 {
-    this.LoadGraphFromString(str); 
+    const previous = this.graph.SaveToXML(this.SaveUserSettings());
+    this.LoadGraphFromString(str);
+    this.undoStack.PushToStack("Import", previous);
+    this.UpdateHistoryButtons();
     this.lastGraphName = ""; // if we import graph we forget the name.
 }
 
@@ -1174,7 +1166,7 @@ Application.prototype.GetNewName = function()
 
     for (var i = 0; i < this.graphNameLength; i++ )
     {
-        name += possible.charAt(Math.floor(Math.random() * possible.length));
+        name += possible.charAt(crypto.getRandomValues(new Uint32Array(1))[0] % possible.length);
     }
 
     return name;
@@ -1373,34 +1365,33 @@ Application.prototype.IsGraphFitOnViewport = function()
 
 Application.prototype.PushToStack = function(actionName)
 {
-    this.undoStack.PushToStack(actionName, this.graph.SaveToXML(this.SaveUserSettings()));
+    this.undoStack.PushToStack(actionName, this.DocumentXML());
 
-    document.getElementById('GraphUndo').style.display = 'inline-block';
+    this.UpdateHistoryButtons();
 }
 
-Application.prototype.Undo = function()
-{
-    let data = this.undoStack.Undo();
-
-    if (data == null)
-        return;
-    
-    this.graph = new Graph();
-    var userSettings = {};
-    this.graph.LoadFromXML(data, userSettings);
-    if (userSettings.hasOwnProperty("data") && userSettings["data"].length > 0)
-        this.LoadUserSettings(userSettings["data"]);
-
-    if (this.handler != null)
-    {
-        this.handler.GraphWasUpdated();
-        this.handler.RestRedraw();
-    }
+Application.prototype.RestoreDocumentSnapshot = function(data) {
+    if (data === null) return;
+    const graph = new Graph(), settings = {};
+    graph.LoadFromXML(data, settings);
+    this.SetDefaultHandler();
+    this.graph = graph;
+    if (settings.data) this.LoadUserSettings(settings.data);
     this.redrawGraph();
+    this.UpdateHistoryButtons();
+};
+Application.prototype.Undo = function() {
+    this.RestoreDocumentSnapshot(this.undoStack.Undo(this.DocumentXML()));
+};
+Application.prototype.Redo = function() {
+    this.RestoreDocumentSnapshot(this.undoStack.Redo(this.DocumentXML()));
+};
 
-    if (this.undoStack.IsUndoStackEmpty())
-        document.getElementById('GraphUndo').style.display = 'none';    
-}
+Application.prototype.UpdateHistoryButtons = function() {
+    const undo = document.getElementById("GraphUndo"), redo = document.getElementById("GraphRedo");
+    if (undo) undo.style.display = this.undoStack.IsUndoStackEmpty() ? "none" : "inline-block";
+    if (redo) redo.style.display = this.undoStack.IsRedoStackEmpty() ? "none" : "inline-block";
+};
 
 let g_base_style_str = " \"base_style\":";
 let g_base_style_0_str = " \"base_style\": 0";
@@ -1532,6 +1523,8 @@ Application.prototype.GetAvailableCurveValue = function(neighborEdges, originalE
 
 Application.prototype.GraphTypeChanged = function()
 {
+    this.graph.isMultiGraph = this.graph.checkMutiGraph();
+    this.graph.hasNegativeWeight = this.graph.checkNegativeWeight();
     this.listener.OnGraphTypeChanged(this.graph.isMulti());
 }
 
@@ -1740,12 +1733,12 @@ Application.prototype.setEmscripten = function(processFunction)
 
 Application.prototype.isSupportEmscripten = function () 
 {
-    return this.processEmscriptenFunction != null;
+    return this.algorithmRunner != null;
 }
 
 Application.prototype.processEmscripten = function (inputData)
 {
-    return this.processEmscriptenFunction(inputData);
+    return this.algorithmRunner.run(inputData);
 }
 
 Application.prototype.setDefaultEdge = function (defaultEdge)
@@ -1784,61 +1777,25 @@ Application.prototype.isAutoSaveGraphName = function (str)
     return str.length > 0 && str.length <= this.graphNameLength + this.styliedGraphNamePostfix.length;
 }
 
-Application.prototype.saveAutoSave = function (graphXML, callback)
-{
-    compress_text_into_zip_base64(graphXML, function(base64Str) {
-        if (this.lastSavedAutoSave == base64Str)
-        {
-            if (callback)
-            {
-                callback();
-            }
-            return;
-        }
-    
-        if (base64Str.length < this.maxAutosaveSizeForCookie)
-        {
-            this.setAutoSaveCookie(base64Str);
-            let saveGraphData = this.getAutoSaveCookie();
-            if (saveGraphData == base64Str)
-            {
-                this.lastSavedAutoSave = base64Str;
-                console.log("Auto save to cookie");
-                if (callback)
-                {
-                    callback();
-                }
-                return;
-            }
-            else
-            {
-                console.log("Failed to save autosave to cookie");
-                this.removeAutoSaveCookie();
-            }
-        }
-    
-        let autoSaveGraphName = this.getAutoSaveCookie();
-    
-        if (!this.isAutoSaveGraphName(autoSaveGraphName))
-        {
-            autoSaveGraphName = this.GetNewGraphName();
-        }
-    
-        let app = this;
-        
-        // Backend zip graph xml by itself.
-        DiskSaveLoad.SaveAutoSaveGraphOnDisk(autoSaveGraphName, graphXML, function( msg ) 
-        {
-            app.setAutoSaveCookie(autoSaveGraphName);
-            app.lastSavedAutoSave = base64Str;
-            if (callback)
-            {
-                callback();
-            }
-            console.log("Auto save to file");
-        }.bind(base64Str));
-    }.bind(this));
-}
+Application.prototype.saveAutoSave = function(graphXML, callback) {
+    return GraphOnline.drafts.save({xml: graphXML, reference: this.lastGraphName, updatedAt: Date.now()}).then(() => {
+        this.lastSavedAutoSave = graphXML;
+        this.setAutoSaveCookie("local");
+        GraphOnline.status("saved");
+        if (callback) callback();
+    }).catch(error => { GraphOnline.status("storageError", true); throw error; });
+};
+Application.prototype.DocumentXML = function() {
+    return this.handler instanceof AlgorithmGraphHandler ? this.handler.originalDocument : this.graph.SaveToXML(this.SaveUserSettings());
+};
+Application.prototype.scheduleAutoSave = function() {
+    if (!this.ready) return;
+    clearTimeout(this.autoSaveTimeout);
+    this.autoSaveTimeout = setTimeout(() => {
+        const xml = this.DocumentXML();
+        if (xml !== this.lastSavedAutoSave) this.saveAutoSave(xml).catch(() => {});
+    }, 400);
+};
 
 Application.prototype.hasAutoSave = function ()
 {
@@ -1859,70 +1816,19 @@ Application.prototype.loadAutoSave = function (callback)
     });
 }
 
-Application.prototype.getAutoSaveGraph = function (callback)
-{
-    let autoSaveData = this.getAutoSaveCookie();
-
-    if (autoSaveData.length < 0)
-    {
-        console.log("Auto save to cookie is empty");
-        return;
-    }
-
-    let app = this;
-	if (!this.isAutoSaveGraphName(autoSaveData))
-    {
-        this.loadGraphFromZippedBase64(autoSaveData, function(xmlGraph){
-            console.log("Load graph from cookie");
-            if (callback)
-            {
-                callback(xmlGraph);
-            }
-        });
-        return;
-    }
-
-    DiskSaveLoad.LoadAutoSaveGraphFromDisk(autoSaveData, function( xmlGraph ) 
-	{
-        if (callback)
-        {
-            callback(xmlGraph);
-        }
-	});
-}
-
-Application.prototype.removeAutosave = function (callback)
-{
-    let autoSaveData = this.getAutoSaveCookie();
-    this.lastSavedAutoSave = "";
-    let app = this;
-    if (autoSaveData.length < 0)
-    {
-        console.log("Auto save to cookie is empty");
-        return;
-    }
-
-    if (!this.isAutoSaveGraphName(autoSaveData))
-    {
-        app.removeAutoSaveCookie();
-        console.log("Remove auto save from cookie");
-        if (callback)
-        {
-            callback();
-        }
-        return;
-    }
-
-    DiskSaveLoad.RemoveAutoSaveGraphFromDisk(autoSaveData, function( msg ) 
-    {
-        app.removeAutoSaveCookie();
-        console.log("Remove auto save file");
-        if (callback)
-        {
-            callback();
-        }
-    });
-}
+Application.prototype.getAutoSaveGraph = function(callback) {
+    return GraphOnline.drafts.load().then(draft => {
+        if (draft) { callback(draft.xml); return; }
+        const old = this.getAutoSaveCookie();
+        if (!old || old === "local") return;
+        if (this.isAutoSaveGraphName(old)) return DiskSaveLoad.LoadAutoSaveGraphFromDisk(old, callback);
+        this.loadGraphFromZippedBase64(old, callback);
+    }).catch(() => GraphOnline.status("loadError", true));
+};
+Application.prototype.removeAutosave = function(callback) {
+    // Retain a recovery document after publishing and opening shared snapshots.
+    if (callback) callback();
+};
 
 Application.prototype.setAutoSaveCookie = function (value)
 {
@@ -2004,15 +1910,10 @@ Application.prototype.showSelectGraphDialog = function(graphName)
 	});
 }
 
-Application.prototype.startAutoSaveTimer = function()
-{
-    // Start autosave timer.
-    setInterval(function()
-    {
-        var graphXML = this.graph.SaveToXML(this.SaveUserSettings());
-        this.saveAutoSave(graphXML);
-    }.bind(this), this.autosaveTimeInterval);
-}
+Application.prototype.startAutoSaveTimer = function() {
+    clearInterval(this.autosaveTimer);
+    this.autosaveTimer = setInterval(() => this.scheduleAutoSave(), 10000);
+};
 
 Application.prototype.onSelectOgirinalGraph = function(graphName)
 {

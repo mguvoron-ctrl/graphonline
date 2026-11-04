@@ -37,33 +37,7 @@ DFSAlgorithm.prototype.result = function(resultCallback)
     return result;
 }
 
-DFSAlgorithm.prototype.getMainMessage = function()
-{
-    var message = g_traversalOrder;
-    // calculate.
-    var tempVisited = this.visited.slice();
-    var tempEdge    = [];
-    
-    var oldLength = 0;
-    
-    while (oldLength < tempVisited.length)
-    {
-        oldLength = tempVisited.length;
-        for (var i = tempVisited.length - 1; i >= 0; i--)
-        {
-            if (this.dfs(tempVisited[i], tempVisited, tempEdge))
-                break;
-        }
-    }
-    
-    // Format message
-    for (var i = 0; i < tempVisited.length; i ++)
-    {
-        tempVisited[i].upText = (i + 1) + "";
-        message = message + tempVisited[i].mainText + " ";
-    }
-    return message;
-}
+DFSAlgorithm.prototype.getMainMessage = BaseTraversal.prototype.getMainMessage;
 
 DFSAlgorithm.prototype.getPriority = function()
 {

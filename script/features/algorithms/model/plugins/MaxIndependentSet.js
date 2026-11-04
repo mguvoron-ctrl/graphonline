@@ -65,8 +65,8 @@ MaxIndependentSet.prototype.resultCallback = function(pathObjects, properties, r
             let objectId = results[i].value;
             if (results[i].type == 8) 
             {
-                let mainText = this.graph.FindVertex(objectId).mainText;
-                this.message = this.message + mainText + ((vertexIndex < size - 1) ? ", " : ".");
+                let mainText = gEncodeToHTML(this.graph.FindVertex(objectId).mainText);
+                this.message = this.message + gEncodeToHTML(mainText) + ((vertexIndex < size - 1) ? ", " : ".");
                 vertexIndex++;
             }
             this.selectedObjects[objectId] = 1;

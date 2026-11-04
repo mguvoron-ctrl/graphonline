@@ -10,9 +10,9 @@ function AlgorithmGraphHandler(app, algorithm)
 {
     BaseHandler.apply(this, arguments);
     this.algorithm = algorithm;
+    this.originalDocument = app.graph.SaveToXML(app.SaveUserSettings());
     this.SaveUpText();
     
-    this.UpdateResultAndMessage();
 }
 
 // inheritance.
@@ -71,6 +71,7 @@ AlgorithmGraphHandler.prototype.GetSelectedGroup = function(object)
 AlgorithmGraphHandler.prototype.RestoreAll = function()
 {
     this.app.setRenderPath([]);
+    if (this.algorithm.cleanup) this.algorithm.cleanup();
  
     if (this.algorithm.needRestoreUpText())
     {
@@ -109,6 +110,7 @@ AlgorithmGraphHandler.prototype.RestoreUpText = function()
 AlgorithmGraphHandler.prototype.UpdateResultAndMessage = function()
 {
     var self = this;
+    try {
     result = this.algorithm.result(function (result)
                                    {
                                         self.message = self.algorithm.getMessage(g_language);
@@ -118,6 +120,11 @@ AlgorithmGraphHandler.prototype.UpdateResultAndMessage = function()
     this.app.resultCallback(result);
     
     this.message = this.algorithm.getMessage(g_language);
+    } catch (error) {
+        this.algorithm.message = GraphOnline.translate(error.message.includes("Negative cycle") ? "negativeCycle" : "algorithmError");
+        this.message = this.algorithm.message;
+        GraphOnline.status("algorithmError", true);
+    }
 }
 
 AlgorithmGraphHandler.prototype.InitControls = function()

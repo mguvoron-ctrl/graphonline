@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/cli_only.php";
 
   $matrix = $_GET["matrix"];
   $text   = $_GET["text"];

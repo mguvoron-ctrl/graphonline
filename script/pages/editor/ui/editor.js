@@ -47,6 +47,16 @@ Editor.prototype.initMouseActions = function() {
 
 Editor.prototype.initKeyActions = function() {
     let self = this;
+    document.addEventListener("keydown", event => {
+        const target = event.target;
+        if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+            event.preventDefault();
+            event.shiftKey ? self.application.Redo() : self.application.Undo();
+        }
+    });
+    document.getElementById("GraphRedo").title = GraphOnline.translate("redo");
+    document.getElementById("GraphRedo").onclick = () => self.application.Redo();
 
     function getCharCode(event) {
         if (event.which == null) { // IE
@@ -146,7 +156,7 @@ Editor.prototype.initKeyActions = function() {
           {
               selectHandler('Default', new DefaultHandler(self.application));
           }
-          else if (code == 26 && isCtrl)
+          else if (false)
           {
               userAction("Key_GraphUndo");
               self.application.Undo();
@@ -421,7 +431,7 @@ Editor.prototype.initButtonActions = function()
     {
         userAction(this.id);
         
-        var graphAsString  = self.application.graph.SaveToXML(self.application.SaveUserSettings());
+        var graphAsString = GraphOnline.exportGraphML(self.application.DocumentXML());
         var savedGraphName = self.application.GetNewGraphName();
         
         var element = document.createElement('a');
@@ -680,6 +690,8 @@ Editor.prototype.init = function()
 
 	resizeCanvas();
     this.application.onPostLoadEvent();
+    this.messageObserver = new ResizeObserver(() => requestAnimationFrame(() => resizeCanvas()));
+    this.messageObserver.observe(document.getElementById("message"));
 
     this.initAlgorithmList();
 }

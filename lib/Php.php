@@ -88,7 +88,7 @@
         // Нормализация переменных в массивах при включенном magic_quotes (так же чистит от html)
         private static function NormalizeArrays()
         {
-            if (get_magic_quotes_gpc())
+            if ((function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()))
             {
                 if (is_array($_FILES))
                 {

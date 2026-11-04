@@ -90,7 +90,7 @@ ShowIncidenceMatrix.prototype.show = function()
 		/* Each vertex name max 3 symbols */
 		sideText += this.app.graph.vertices[i].mainText.toString().slice(0, 3) + "\n";		
 	}
-	$("#incidenceMatrix_side_text_text").html(sideText + "\n");
+	$("#incidenceMatrix_side_text_text").text(sideText + "\n");
 
 	let topText = $("#incidenceMatrix_top_text_text");
 	let renderEdgeNames = function(columns) {

@@ -181,7 +181,9 @@
         $cacheExists   = file_exists("." . $cacheFilePath);
         $finalFileName = $cacheExists && $g_config['use_js_cache'] ? $cacheFilePath : $filePath;
 
-        return $finalFileName . "?v=" . $g_config['engine_version'];
+        $local = BASEPATH . ltrim($finalFileName, '/');
+        $version = is_readable($local) ? substr(hash_file('sha256', $local), 0, 16) : $g_config['engine_version'];
+        return $finalFileName . "?v=" . $version;
     }
 
     /**
@@ -236,43 +238,16 @@
     {
         global $g_config;
 
-        require_once BASEPATH . 'lib/ExtraPacker/Config.php';
-        require_once BASEPATH . 'lib/ExtraPacker/ExtraPacker.php';
+        // Assets are built ahead of time by npm run build, never compiled on requests.
         require_once BASEPATH . 'lib/HtmlValidate.php';
-
-        $validator   = new HtmlValidate($c);
-        $c           = $validator->Get();
-
-        $postfix     = str_replace ("/", "", strtok($_SERVER["REQUEST_URI"],'?'));
-
-        $cfg         = $g_config['extrapacker'];
-        $extraPacker = new ExtraPacker(
-                                            array('ExtraPacker_Config', 'GetPathJsFileFromUrl'),
-                                            array('ExtraPacker_Config', 'GetPathCssFileFromUrl'),
-                                            array('ExtraPacker_Config', 'GetAddrJsPackFile'),
-                                            array('ExtraPacker_Config', 'GetAddrCssPackFile'),
-                                            NULL,
-                                            NULL,
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/js/$postfix/inf.txt",
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/js/$postfix/js.js",
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/css/$postfix/inf.txt",
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/css/$postfix/css.css",
-                                            $cfg['packHtml'],
-                                            $cfg['packCss'],
-                                            $cfg['packJs'],
-                                            $cfg['arrExeptions_js'],
-                                            $cfg['arrExeptionsNotAdd_js'],
-                                            $cfg['arrExeptions_css'],
-                                            $cfg['arrExeptionsNotAdd_css'],
-                                            true,
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/js/$postfix/trans.txt",
-                                            BASEPATH . 'tmp/' . $cfg['dir'] . "/css/$postfix/trans.txt",
-                                            $cfg['buffering'],
-                                            array('ExtraPacker_Config', 'PrepareEachFile'),
-                                            array('ExtraPacker_Config', 'PrepareAllCss'),
-                                            array('ExtraPacker_Config', 'PrepareAllJs')
-                                       );
-        return $extraPacker->Pack($c) . GetDebug();
+        $validator = new HtmlValidate($c);
+        $html = $validator->Get();
+        if (defined('IS_ADMIN_AUTH') && strpos(GetQuery(), 'admin') === 0) {
+            $auth = new AdminModel();
+            $token = htmlspecialchars($auth->Token(), ENT_QUOTES, 'UTF-8');
+            $html = preg_replace('/(<form\b[^>]*>)/i', '$1<input type="hidden" name="csrf" value="' . $token . '">', $html);
+        }
+        return $html . GetDebug();
     }
 
     /**

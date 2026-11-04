@@ -21,7 +21,7 @@ FloidAlgorithm.prototype.secondObject = null;
 // Path
 FloidAlgorithm.prototype.pathObjects = null;
 // infinity
-FloidAlgorithm.prototype.infinity = 1E8;
+FloidAlgorithm.prototype.infinity = Infinity;
 
 FloidAlgorithm.prototype.getName = function(local)
 {
@@ -86,38 +86,20 @@ FloidAlgorithm.prototype.result = function(resultCallback)
 
 FloidAlgorithm.prototype.resultMatrix = function()
 {
-    this.matrix = [];
-    
-    for (var i = 0; i < this.graph.vertices.length; i ++)
-    {
-        this.matrix.push([]);
-        var v1 = this.graph.vertices[i];
-        var str = "";
-        for (var j = 0; j < this.graph.vertices.length; j ++)
-        {
-            var v2 = this.graph.vertices[j];
-            var edge = this.graph.FindEdgeMin(v1.id, v2.id);
-            if (edge != null)
-            {
-                this.matrix[i][j] = edge.GetWeight();
-            }
-            else
-            {
-                this.matrix[i][j] = this.infinity;               
-            }
-        }
-    }
-    
+    this.matrix = this.graph.GetAdjacencyMatrix();
+    for (let i = 0; i < this.matrix.length; i++) this.matrix[i][i] = Math.min(0, this.matrix[i][i]);
+
     for (var k = 0; k < this.graph.vertices.length; k ++)
         for (var i = 0; i < this.graph.vertices.length; i ++)
             for (var j = 0; j < this.graph.vertices.length; j ++)
                 {
-                    if (this.matrix[i][j] > this.matrix[i][k] + this.matrix[k][j])
+                    if (Number.isFinite(this.matrix[i][k]) && Number.isFinite(this.matrix[k][j]) && this.matrix[i][j] > this.matrix[i][k] + this.matrix[k][j])
                     {
                         this.matrix[i][j] = this.matrix[i][k] + this.matrix[k][j];
                     }
                 }
     
+    if (this.matrix.some((row, i) => row[i] < 0)) throw new Error("Negative cycle: shortest distances are undefined");
     return this.matrix;
 }
 
@@ -167,8 +149,8 @@ FloidAlgorithm.prototype.messageWasChanged = function()
                 col_text = col_text.padStart(col_width, " ");
                 topText += col_text + "  ";
             }
-            $("#floidMatrix_top_text_text").html(topText);
-            $("#floidMatrix_side_text_text").html(sideText + "\n");
+            $("#floidMatrix_top_text_text").text(topText);
+            $("#floidMatrix_side_text_text").text(sideText + "\n");
             
             $( "#floidMatrix" ).dialog({
 		        resizable: false,
@@ -226,25 +208,9 @@ FloidAlgorithm.prototype.wantRestore = function()
 
 FloidAlgorithm.prototype.restore = function()
 {
-    this.removeAllEdges();
-    
-    this.graph.hasDirect = false;
-    console.log(this.egdesCopy);
-    
-    for (var i = 0; i < this.egdesCopy.length; i ++)
-    {
-        var edgeIndex = this.graph.AddNewEdgeSafe(this.egdesCopy[i].vertex1,
-            this.egdesCopy[i].vertex2,
-            this.egdesCopy[i].isDirect,
-            this.egdesCopy[i].weight,
-            this.isGraphMulti);
-        
-        var edge = this.graph.edges[edgeIndex];
-        edge.model.type        = this.egdesCopy[i].model.type;
-        edge.model.curveValue = this.egdesCopy[i].model.curveValue;
-
-        //edge.model = this.egdesCopy[i].model;
-    }
+    this.graph.edges = this.egdesCopy.slice();
+    this.graph.isMultiGraph = this.graph.checkMutiGraph();
+    this.graph.hasNegativeWeight = this.graph.checkNegativeWeight();
 }
 
 FloidAlgorithm.prototype.updateMessage = function(save)
