@@ -24,6 +24,35 @@
         <link rel="manifest" href="/manifest.webmanifest">
         <meta http-equiv="cleartype" content="on">
 
+        <script>
+            // Reload once when a newer offline bundle takes control. This keeps
+            // a new HTML shell from being displayed with old cached CSS or JS.
+            globalVersion = <?= json_encode(is_readable(BASEPATH . 'script/dist/version.txt') ? trim(file_get_contents(BASEPATH . 'script/dist/version.txt')) : (string)$g_config['engine_version']) ?>;
+            if ('serviceWorker' in navigator && window.isSecureContext && <?= json_encode(SITE_IN_DIR === '') ?>) {
+                const hadServiceWorker = Boolean(navigator.serviceWorker.controller);
+                let serviceWorkerReloading = false;
+                navigator.serviceWorker.addEventListener('controllerchange', async () => {
+                    if (!hadServiceWorker || serviceWorkerReloading) return;
+                    const reloadKey = 'graphonline-sw-' + globalVersion;
+                    try {
+                        if (sessionStorage.getItem(reloadKey)) return;
+                        sessionStorage.setItem(reloadKey, '1');
+                    } catch (_) {}
+                    serviceWorkerReloading = true;
+                    try {
+                        if (typeof editor !== 'undefined' && editor.application?.flushAutoSave) {
+                            await editor.application.flushAutoSave();
+                        }
+                    } catch (_) {}
+                    location.reload();
+                });
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/service-worker.js', {updateViaCache: 'none'})
+                        .then(registration => registration.update())
+                        .catch(error => console.info('Offline cache unavailable', error));
+                });
+            }
+        </script>
 
         <script src="<?= Root("i/js/dev/jquery-2.0.3.min.js")?>" ></script>
         <script src="<?= RootCacheJS("script/dist/core.js") ?>"></script>
@@ -49,8 +78,6 @@
                     window.location.href = '/blackout/index.html';
                 }
 
-            // Global version needs to force reload scripts from server.
-            globalVersion = <?= json_encode(is_readable(BASEPATH . 'script/dist/version.txt') ? trim(file_get_contents(BASEPATH . 'script/dist/version.txt')) : (string)$g_config['engine_version']) ?>;
         </script>
     </head>
     <body>

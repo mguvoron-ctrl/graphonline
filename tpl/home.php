@@ -1,6 +1,6 @@
 <?php $g_config['editorLayout'] = true; ?>
     <head>
-        <link rel="stylesheet" type="text/css" href="<?= Root('i/css/home.css')?>" />
+        <link rel="stylesheet" type="text/css" href="<?= RootCacheJS('i/css/home.css')?>" />
 	      <link rel="stylesheet" type="text/css" href="<?= Root('i/css/jquery-ui.theme.css')?>" />
         <link rel="stylesheet" type="text/css" href="<?= Root('i/css/jquery-ui.css')?>" />
 
@@ -194,7 +194,7 @@
               <span class="bi bi-eraser menu-text"></span><span class="hidden-phone menu-text"> <?= L('delete')?> <sub style="color:#AAAAAA">r</sub></span>
             </a>
           </li>
-          <li class="nav-item dropdown hidden-phone">
+          <li class="nav-item dropdown">
               <a class="dropdown-toggle btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" href="javascript:;" role="button" aria-expanded="false" aria-haspopup="true" id="openSettings">
                 <span class="bi bi-tools menu-text"></span><span class="menu-text"> <?= L('settings')?> </span>
               </a>

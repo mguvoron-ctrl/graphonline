@@ -104,3 +104,21 @@ test('message, workspace controls and canvas never overlap at narrow widths',asy
     }finally{await context.close();}
   }
 });
+test('editor toolbar buttons stay compact, aligned and complete',async({browser,baseURL})=>{
+  for(const width of [1380,720]){
+    const context=await browser.newContext({baseURL,viewport:{width,height:844},deviceScaleFactor:2});
+    try{
+      const page=await context.newPage();await open(page);
+      const boxes=await page.locator('#main-menu > li > .btn:visible').evaluateAll(buttons=>buttons.map(button=>{
+        const box=button.getBoundingClientRect();return{width:box.width,height:box.height};
+      }));
+      expect(boxes.length).toBeGreaterThanOrEqual(9);
+      expect(Math.max(...boxes.map(box=>box.height))).toBeLessThanOrEqual(38);
+      expect(Math.max(...boxes.map(box=>box.height))-Math.min(...boxes.map(box=>box.height))).toBeLessThanOrEqual(2);
+      await expect(page.locator('#openSettings')).toBeVisible();
+      if(width<=1000) expect((await page.locator('#openSettings').boundingBox()).width).toBeLessThanOrEqual(38);
+      await page.locator('#AddGraph').click();
+      expect(await page.locator('#AddGraph').evaluate(button=>getComputedStyle(button).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+    }finally{await context.close();}
+  }
+});

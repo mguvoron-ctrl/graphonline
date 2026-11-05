@@ -98,7 +98,3 @@ $(document).ready(function ()
 	});
 */
 });
-
-if ('serviceWorker' in navigator && window.isSecureContext && SiteDir === '') {
-    window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(error => console.info('Offline cache unavailable', error)));
-}

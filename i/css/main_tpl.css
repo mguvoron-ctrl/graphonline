@@ -488,6 +488,103 @@ html.graphonline-editor #mainContainer
     padding-right: 12px;
 }
 
+html.graphonline-editor #navigation
+{
+    min-height: 44px;
+    margin-bottom: 8px;
+}
+
+html.graphonline-editor #navigation .container-fluid
+{
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+html.graphonline-editor #navigation .navbar-brand
+{
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 24px;
+}
+
+html.graphonline-editor #navigation .nav-link
+{
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+html.graphonline-editor #editorToolbar
+{
+    margin-bottom: 8px;
+}
+
+html.graphonline-editor #main-menu
+{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+html.graphonline-editor #main-menu > li
+{
+    margin: 0;
+}
+
+html.graphonline-editor #main-menu > li > .btn
+{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 14px;
+    line-height: 1.2;
+    transition: none;
+}
+
+html.graphonline-editor #main-menu > li > .btn .bi
+{
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+}
+
+html.graphonline-editor #main-menu > li > .btn sub
+{
+    display: none;
+}
+
+@media only screen and (max-width: 1000px)
+{
+    html.graphonline-editor #main-menu > li > .btn .hidden-phone
+    {
+        display: none;
+    }
+
+    html.graphonline-editor #main-menu > li > .btn .bi ~ .menu-text,
+    html.graphonline-editor #main-menu > li > .dropdown-toggle::after
+    {
+        display: none;
+    }
+
+    html.graphonline-editor #main-menu > li > .btn
+    {
+        width: 34px;
+        min-height: 34px;
+        padding: 5px;
+    }
+
+    html.graphonline-editor #main-menu
+    {
+        gap: 4px;
+    }
+}
+
 html.graphonline-editor #h1Header,
 html.graphonline-editor #h1Text,
 html.graphonline-editor #footer,
