@@ -104,44 +104,15 @@ ConnectionGraphHandler.prototype.SelectFirst = function()
 {
 	this.firstObject = null;
     
-	this.message = g_selectFirstVertexToConnect + this.GetUseDefaultEdgeCheckBox() + 
-        this.GetSelect2VertexMenu();
+    this.message = g_selectFirstVertexToConnect + this.GetUseDefaultEdgeCheckBox();
     this.message = this.AppendSpecialSctionsButton(this.message);
 }
 
 ConnectionGraphHandler.prototype.SelectSecond = function(selectedObject)
 {
 	this.firstObject = selectedObject;
-	this.message     = g_selectSecondVertexToConnect + this.GetUseDefaultEdgeCheckBox() + 
-        this.GetSelect2VertexMenu();		
+    this.message = g_selectSecondVertexToConnect + this.GetUseDefaultEdgeCheckBox();
     this.message = this.AppendSpecialSctionsButton(this.message);				
-}
-
-ConnectionGraphHandler.prototype.SelectFirstVertexMenu = function(vertex1Text, vertex)
-{
-   this.firstObject = null;
-   this.SelectVertex(vertex);
-}
-
-ConnectionGraphHandler.prototype.UpdateFirstVertexMenu = function(vertex1Text)
-{
-    if (this.firstObject)
-    {
-        vertex1Text.value = this.firstObject.mainText;        
-    }
-}
-
-ConnectionGraphHandler.prototype.SelectSecondVertexMenu = function(vertex2Text, vertex)
-{
-    this.SelectVertex(vertex);
-}
-
-ConnectionGraphHandler.prototype.UpdateSecondVertexMenu = function(vertex2Text)
-{
-    if (this.secondObject)
-    {
-        vertex2Text.value = this.secondObject.mainText;
-    }   
 }
 
 ConnectionGraphHandler.prototype.AppendSpecialSctionsButton = function(baseMessage)

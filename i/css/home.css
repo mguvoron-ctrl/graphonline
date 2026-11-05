@@ -123,11 +123,6 @@
     	display: none;
     }
 
-    .SelectVertexInput
-    {
-        width: 64px;
-    }
-
     .ui-dialog.EdgeDialog
        {
       font-size: 15px;
@@ -238,20 +233,6 @@
     position: relative;
 }
 
-#workspaceBar
-{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 16px;
-    min-height: 44px;
-    padding: 6px 8px;
-    margin-bottom: 8px;
-    border: 1px solid #dbe3ec;
-    border-radius: 8px;
-    background: #f8fafc;
-}
-
 .content {
   padding-bottom: 8px;
 }
@@ -289,19 +270,28 @@
     flex: 0 1 auto;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 4px;
     min-width: 0;
 }
 
 #TogglePanels
 {
-    min-height: 32px;
+    width: 34px;
+    min-height: 34px;
+    padding: 5px;
+    border-radius: 7px;
     white-space: nowrap;
+}
+
+#TogglePanelsLabel
+{
+    display: none;
 }
 
 #CanvasMessage
 {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
+    max-width: 140px;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -315,6 +305,11 @@
     -ms-user-select: none; /* Internet Explorer/Edge */
     user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome and Opera */
+}
+
+#CanvasMessage:empty
+{
+    display: none;
 }
 
 #CanvasSearch
@@ -338,10 +333,11 @@
 
 #CanvasSearchText
 {
-    width: clamp(150px, 18vw, 220px);
+    width: 160px;
     min-width: 0;
-    min-height: 32px;
+    min-height: 34px;
     padding-left: 32px;
+    border-radius: 7px;
 }
 
 #ShowArrow
@@ -423,15 +419,10 @@
     }
 
 @media only screen and (max-width: 650px) {
-    #workspaceBar
+    #toolbarViewControls
     {
-        align-items: stretch;
-        flex-direction: column;
-        gap: 6px;
-    }
-    #CanvasMessage:empty
-    {
-        display: none;
+        flex: 1 0 100%;
+        margin-left: 0 !important;
     }
     #canvasControls
     {
@@ -444,10 +435,6 @@
     #CanvasSearchText
     {
         width: 100%;
-    }
-    #TogglePanelsLabel
-    {
-        display: none;
     }
 	#AdjacencyMatrixField
 	{

@@ -244,6 +244,16 @@
           <li class="nav-item">
             <button type="button" class="btn btn-sm btn-outline-secondary" id="GraphLayout" aria-label="Arrange vertices"><span class="bi bi-diagram-3" aria-hidden="true"></span></button>
           </li>
+          <li class="nav-item" id="toolbarViewControls">
+            <div id="canvasControls" role="group" aria-label="View controls">
+              <span id="CanvasMessage" aria-live="polite"></span>
+              <label id="CanvasSearch" for="CanvasSearchText">
+                <span class="bi bi-search" aria-hidden="true"></span>
+                <input type="text" id="CanvasSearchText" class="form-control form-control-sm" placeholder="<?= L('vertex_name_place_holder') ?>" aria-label="<?= L('vertex_name_place_holder') ?>" list="vertexListCanvas"/>
+              </label>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="TogglePanels" aria-expanded="true" aria-controls="navigation editorToolbar editorMessages"><span class="bi bi-chevron-up" id="TogglePanelsIcon" aria-hidden="true"></span> <span id="TogglePanelsLabel">Hide panels</span></button>
+            </div>
+          </li>
           <!--
               <? if (!$wasVote && count($voteTopics) > 0): ?>
               <button type="button" class="btn btn-success" id="VoteButton"><span class="bi bi-thumbs-up"></span> <?= L('vote') ?></button>
@@ -265,16 +275,6 @@
     
     <span class="bi bi-arrow-down-left icon-300" id="ShowArrow"></span>
 
-    <div id="workspaceBar">
-      <span id="CanvasMessage" aria-live="polite"></span>
-      <div id="canvasControls" role="group" aria-label="View controls">
-        <label id="CanvasSearch" for="CanvasSearchText">
-          <span class="bi bi-search" aria-hidden="true"></span>
-          <input type="text" id="CanvasSearchText" class="form-control form-control-sm" placeholder="<?= L('vertex_name_place_holder') ?>" aria-label="<?= L('vertex_name_place_holder') ?>" list="vertexListCanvas"/>
-        </label>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="TogglePanels" aria-expanded="true" aria-controls="navigation editorToolbar editorMessages"><span class="bi bi-chevron-up" id="TogglePanelsIcon" aria-hidden="true"></span> <span id="TogglePanelsLabel">Hide panels</span></button>
-      </div>
-    </div>
     <!-- Older service-worker caches still look up these IDs during startup. -->
     <span id="Fullscreen" hidden inert aria-hidden="true"><span id="FullscreenIcon"></span></span>
     <canvas id="canvas"><?= L('browser_no_support')?></canvas>

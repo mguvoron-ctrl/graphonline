@@ -533,6 +533,11 @@ html.graphonline-editor #main-menu > li
     margin: 0;
 }
 
+html.graphonline-editor #toolbarViewControls
+{
+    margin-left: auto;
+}
+
 html.graphonline-editor #main-menu > li > .btn
 {
     display: inline-flex;
@@ -634,8 +639,17 @@ html.graphonline-editor #editorMessages #message button
 }
 
 html.graphonline-editor.graphonline-panels-hidden #navigation,
-html.graphonline-editor.graphonline-panels-hidden #editorToolbar,
 html.graphonline-editor.graphonline-panels-hidden #editorMessages
 {
     display: none !important;
+}
+
+html.graphonline-editor.graphonline-panels-hidden #main-menu > li:not(#toolbarViewControls)
+{
+    display: none !important;
+}
+
+html.graphonline-editor.graphonline-panels-hidden #toolbarViewControls
+{
+    margin-left: auto;
 }

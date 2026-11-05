@@ -108,46 +108,7 @@ BaseHandler.prototype.GetSelectedGroup = function(object)
 	return 0;
 }
 
-BaseHandler.prototype.InitControls = function() 
-{
-    var vertex1Text = document.getElementById("Vertex1");
-    if (vertex1Text)
-    {
-        var handler = this;
-        vertex1Text.onchange = function () {
-           for (var i = 0; i < handler.app.graph.vertices.length; i++)
-           {   
-               if (handler.app.graph.vertices[i].mainText == vertex1Text.value)
-               {
-	               handler.SelectFirstVertexMenu(vertex1Text, handler.app.graph.vertices[i]);
-                   userAction("selectVertex1_menu");
-                   break;
-               }
-           }
-        };
-        
-        this.UpdateFirstVertexMenu(vertex1Text);
-    }
-    
-    var vertex2Text = document.getElementById("Vertex2");
-    if (vertex2Text)
-    {
-        var handler = this;
-        vertex2Text.onchange = function () {
-           for (var i = 0; i < handler.app.graph.vertices.length; i++)
-           {   
-               if (handler.app.graph.vertices[i].mainText == vertex2Text.value)
-               {
-	               handler.SelectSecondVertexMenu(vertex2Text, handler.app.graph.vertices[i]);
-                   userAction("selectVertex2_menu");
-                   break;
-               }
-           }
-        };
-        
-        this.UpdateSecondVertexMenu(vertex2Text);
-    }
-}
+BaseHandler.prototype.InitControls = function() {}
 
 BaseHandler.prototype.GetNodesPath = function(array, start, count)
 {
@@ -163,43 +124,6 @@ BaseHandler.prototype.RestoreAll = function()
 {
 }
 
-BaseHandler.prototype.GetSelectVertexMenu = function(menuName)
-{
-	var res = "<input list=\"vertexList" + menuName + "\" id=\"" + menuName + 
-      "\" class=\"SelectVertexInput\" placeholder=\"" + g_vertexNamePlaceHolder + "\" />" + 
-      "<datalist id=\"vertexList" + menuName + "\">";
-    
-	for (var i = 0; i < this.app.graph.vertices.length; i++)
-	{
-		res = res + "<option value=\"" + gEncodeToHTML(this.app.graph.vertices[i].mainText) + "\"/>";
-	}
-    
-    return res + "</datalist>";
-}
-
-BaseHandler.prototype.GetSelect2VertexMenu = function()
-{
-    return "<span style=\"float:right\">" + 
-        this.GetSelectVertexMenu("Vertex1") + " &rarr; " + this.GetSelectVertexMenu("Vertex2") + "</span>";
-}
-
-BaseHandler.prototype.GetSelectOneVertexMenu = function()
-{
-    return "<span style=\"float:right\">" + 
-        this.GetSelectVertexMenu("Vertex1") + "</span>";
-}
-
-BaseHandler.prototype.SelectFirstVertexMenu = function(vertex1Text, vertex)
-{}
-
-BaseHandler.prototype.UpdateFirstVertexMenu = function()
-{}
-
-BaseHandler.prototype.SelectSecondVertexMenu = function(vertex2Text, vertex)
-{}
-
-BaseHandler.prototype.UpdateSecondVertexMenu = function()
-{}
 
 BaseHandler.prototype.GetSelectedVertex = function()
 {

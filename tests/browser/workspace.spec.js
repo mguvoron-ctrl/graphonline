@@ -58,7 +58,8 @@ test('collapsing panels enlarges the canvas and preserves controls without editi
   });
   await page.locator('#TogglePanels').click();
   await expect(page.locator('#TogglePanels')).toHaveAttribute('aria-expanded','false');
-  await expect(page.locator('#navigation')).toBeHidden();await expect(page.locator('#editorToolbar')).toBeHidden();await expect(page.locator('#editorMessages')).toBeHidden();
+  await expect(page.locator('#navigation')).toBeHidden();await expect(page.locator('#editorToolbar')).toBeVisible();await expect(page.locator('#editorMessages')).toBeHidden();
+  await expect(page.locator('#AddGraph')).toBeHidden();await expect(page.locator('#CanvasSearchText')).toBeVisible();
   expect((await page.locator('#canvas').boundingBox()).height).toBeGreaterThan(before.height+50);
   await page.locator('#TogglePanels').click();await expect(page.locator('#main-menu')).toBeVisible();
   expect(await page.evaluate(()=>document.querySelector('#message #enumVertexsText')===window.keptPanelControl)).toBe(true);
@@ -68,19 +69,19 @@ test('collapsing panels enlarges the canvas and preserves controls without editi
 });
 test('Escape keeps the workspace wide and the panel visibility unchanged',async({page})=>{
   await open(page);await page.locator('#TogglePanels').click();
-  await expect(page.locator('#main-menu')).toBeHidden();
+  await expect(page.locator('#AddGraph')).toBeHidden();
   await page.keyboard.press('Escape');await expect(page.locator('html')).toHaveClass(/graphonline-editor/);
-  await expect(page.locator('#TogglePanels')).toBeVisible();await expect(page.locator('#main-menu')).toBeHidden();
-  await page.locator('#TogglePanels').click();await expect(page.locator('#main-menu')).toBeVisible();
+  await expect(page.locator('#TogglePanels')).toBeVisible();await expect(page.locator('#AddGraph')).toBeHidden();
+  await page.locator('#TogglePanels').click();await expect(page.locator('#AddGraph')).toBeVisible();
 });
 test('mobile canvas keeps a reachable button to restore hidden panels',async({browser,baseURL})=>{
   const context=await browser.newContext({baseURL,viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
   try{
     const page=await context.newPage();await open(page);
-    await page.locator('#TogglePanels').tap();await expect(page.locator('#editorToolbar')).toBeHidden();
+    await page.locator('#TogglePanels').tap();await expect(page.locator('#AddGraph')).toBeHidden();
     await expect(page.locator('#TogglePanels')).toBeVisible();
     const bounds=await page.locator('#canvasControls').boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(391);
-    await page.locator('#TogglePanels').tap();await expect(page.locator('#main-menu')).toBeVisible();
+    await page.locator('#TogglePanels').tap();await expect(page.locator('#AddGraph')).toBeVisible();
   }finally{await context.close();}
 });
 test('message, workspace controls and canvas never overlap at narrow widths',async({browser,baseURL})=>{
@@ -91,18 +92,34 @@ test('message, workspace controls and canvas never overlap at narrow widths',asy
       await expect(page.locator('#message #enumVertexsText')).toBeVisible();
       const bounds=await page.evaluate(()=>{
         const rect=id=>{const value=document.querySelector(id).getBoundingClientRect();return{top:value.top,bottom:value.bottom,left:value.left,right:value.right};};
-        return{message:rect('#message'),selector:rect('#message #enumVertexsText'),bar:rect('#workspaceBar'),controls:rect('#canvasControls'),search:rect('#CanvasSearchText'),canvas:rect('#canvas'),viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth};
+        return{toolbar:rect('#editorToolbar'),message:rect('#message'),selector:rect('#message #enumVertexsText'),controls:rect('#canvasControls'),search:rect('#CanvasSearchText'),canvas:rect('#canvas'),viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth};
       });
       expect(bounds.selector.top).toBeGreaterThanOrEqual(bounds.message.top);
       expect(bounds.selector.bottom).toBeLessThanOrEqual(bounds.message.bottom+1);
-      expect(bounds.message.bottom).toBeLessThanOrEqual(bounds.bar.top);
-      expect(bounds.bar.bottom).toBeLessThanOrEqual(bounds.canvas.top);
-      expect(bounds.controls.left).toBeGreaterThanOrEqual(bounds.bar.left);
-      expect(bounds.controls.right).toBeLessThanOrEqual(bounds.bar.right+1);
+      expect(bounds.controls.top).toBeGreaterThanOrEqual(bounds.toolbar.top);
+      expect(bounds.controls.bottom).toBeLessThanOrEqual(bounds.toolbar.bottom+1);
+      expect(bounds.toolbar.bottom).toBeLessThanOrEqual(bounds.message.top);
+      expect(bounds.message.bottom).toBeLessThanOrEqual(bounds.canvas.top);
+      expect(bounds.controls.left).toBeGreaterThanOrEqual(bounds.toolbar.left);
+      expect(bounds.controls.right).toBeLessThanOrEqual(bounds.toolbar.right+1);
       expect(bounds.search.right).toBeLessThanOrEqual(bounds.controls.right);
       expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.viewport);
     }finally{await context.close();}
   }
+});
+test('vertex search lives in the toolbar and duplicate vertex inputs are removed',async({page})=>{
+  await open(page);
+  await expect(page.locator('#editorToolbar #CanvasSearchText')).toBeVisible();
+  await expect(page.locator('#canvasSection #CanvasSearchText')).toHaveCount(0);
+  await expect(page.locator('#Vertex1, #Vertex2')).toHaveCount(0);
+  await page.locator('#AddGraph').click();
+  await page.locator('#canvas').click({position:{x:120,y:120}});
+  await page.locator('#canvas').click({position:{x:280,y:120}});
+  await page.locator('#ConnectGraphs').click();
+  await expect(page.locator('#Vertex1, #Vertex2')).toHaveCount(0);
+  await page.locator('#canvas').click({position:{x:120,y:120}});
+  await page.locator('#canvas').click({position:{x:280,y:120}});
+  await expect(page.locator('#addEdge')).toBeVisible();
 });
 test('editor toolbar buttons stay compact, aligned and complete',async({browser,baseURL})=>{
   for(const width of [1380,720]){

@@ -420,22 +420,7 @@ DefaultHandler.prototype.GetDefaultText = function()
 {
   return g_textsSelectAndMove + 
     " <span class=\"hidden-phone\">" + g_selectGroupText + "</span>" + 
-    " <span class=\"hidden-phone\">" + g_useContextMenuText + "</span>" +
-    this.GetSelectOneVertexMenu();
-}
-
-DefaultHandler.prototype.SelectFirstVertexMenu = function(vertex1Text, vertex)
-{
-  this.selectedObject = vertex;
-  this.MouseUp(new Point(0, 0));
-}
-
-DefaultHandler.prototype.UpdateFirstVertexMenu = function(vertex1Text)
-{
-    if (this.selectedObject)
-    {
-        vertex1Text.value = this.selectedObject.mainText;        
-    }
+    " <span class=\"hidden-phone\">" + g_useContextMenuText + "</span>";
 }
 
 BaseHandler.prototype.GraphWasUpdated = function() 
