@@ -226,13 +226,30 @@
 
 #canvas
 {
+  display: block;
   width: auto;
   height: 100%;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
 }
 
 #canvasSection
 {
     position: relative;
+}
+
+#workspaceBar
+{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    min-height: 44px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    border: 1px solid #dbe3ec;
+    border-radius: 8px;
+    background: #f8fafc;
 }
 
 .content {
@@ -268,26 +285,29 @@
 
 #canvasControls
 {
-    position: absolute;
-    right: 4px;
-    top: 4px;
     display: flex;
+    flex: 0 1 auto;
     align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.94);
-    z-index: 10;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
 }
 
-#TogglePanels { white-space: nowrap; }
+#TogglePanels
+{
+    min-height: 32px;
+    white-space: nowrap;
+}
+
 #CanvasMessage
 {
-    position: absolute;
-    left: 4px;
-    max-width: calc(100% - 360px);
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    z-index: 10;
+    color: #475569;
+    font-size: 14px;
     -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */
     -khtml-user-select: none; /* Konqueror HTML */
@@ -297,14 +317,31 @@
                                   supported by Chrome and Opera */
 }
 
+#CanvasSearch
+{
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+    font-weight: normal;
+}
+
+#CanvasSearch > .bi
+{
+    position: absolute;
+    left: 10px;
+    z-index: 1;
+    color: #64748b;
+    pointer-events: none;
+}
+
 #CanvasSearchText
 {
-    width: 120px; 
-    padding-left: 2px;
-    padding-right: 2px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    min-height: 1em;
+    width: clamp(150px, 18vw, 220px);
+    min-width: 0;
+    min-height: 32px;
+    padding-left: 32px;
 }
 
 #ShowArrow
@@ -386,10 +423,31 @@
     }
 
 @media only screen and (max-width: 650px) {
-    #CanvasMessage { max-width: calc(100% - 52px); }
-    #canvasSection
+    #workspaceBar
     {
-        margin-left: 12px;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 6px;
+    }
+    #CanvasMessage:empty
+    {
+        display: none;
+    }
+    #canvasControls
+    {
+        width: 100%;
+    }
+    #CanvasSearch
+    {
+        flex: 1 1 auto;
+    }
+    #CanvasSearchText
+    {
+        width: 100%;
+    }
+    #TogglePanelsLabel
+    {
+        display: none;
     }
 	#AdjacencyMatrixField
 	{

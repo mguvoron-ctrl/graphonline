@@ -1,6 +1,8 @@
 const messages: Record<string, [string, string]> = {
   hidePanels: ['Свернуть панели', 'Hide panels'],
   showPanels: ['Показать инструменты', 'Show tools'],
+  panels: ['Панели', 'Panels'],
+  tools: ['Инструменты', 'Tools'],
   viewControls: ['Управление видом', 'View controls'],
   layout: ['Расположить вершины', 'Arrange vertices'],
   layoutRunning: ['Расставляем вершины…', 'Arranging vertices…'],

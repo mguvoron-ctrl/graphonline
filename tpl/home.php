@@ -260,15 +260,20 @@
     </section>
 
     <section id="canvasSection">
-    <span id="CanvasMessage"></span>
     <datalist id="vertexListCanvas">
     </datalist>
     
     <span class="bi bi-arrow-down-left icon-300" id="ShowArrow"></span>
-    
-    <div id="canvasControls" role="group" aria-label="View controls">
-      <input type="text" id="CanvasSearchText" class="form-control form-control-sm hidden-phone" placeholder="⌕ <?= L('vertex_name_place_holder') ?>" list="vertexListCanvas"/>
-      <button type="button" class="btn btn-outline-secondary btn-sm" id="TogglePanels" aria-expanded="true" aria-controls="navigation editorToolbar editorMessages"><span class="bi bi-chevron-up" id="TogglePanelsIcon" aria-hidden="true"></span> <span id="TogglePanelsLabel" class="hidden-phone">Hide panels</span></button>
+
+    <div id="workspaceBar">
+      <span id="CanvasMessage" aria-live="polite"></span>
+      <div id="canvasControls" role="group" aria-label="View controls">
+        <label id="CanvasSearch" for="CanvasSearchText">
+          <span class="bi bi-search" aria-hidden="true"></span>
+          <input type="text" id="CanvasSearchText" class="form-control form-control-sm" placeholder="<?= L('vertex_name_place_holder') ?>" aria-label="<?= L('vertex_name_place_holder') ?>" list="vertexListCanvas"/>
+        </label>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="TogglePanels" aria-expanded="true" aria-controls="navigation editorToolbar editorMessages"><span class="bi bi-chevron-up" id="TogglePanelsIcon" aria-hidden="true"></span> <span id="TogglePanelsLabel">Hide panels</span></button>
+      </div>
     </div>
     <!-- Older service-worker caches still look up these IDs during startup. -->
     <span id="Fullscreen" hidden inert aria-hidden="true"><span id="FullscreenIcon"></span></span>

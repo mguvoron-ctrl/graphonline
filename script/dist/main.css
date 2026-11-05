@@ -391,6 +391,36 @@ html.graphonline-editor #bottom_adv,
 html.graphonline-editor #bottom_info {
   display: none !important;
 }
+html.graphonline-editor #editorMessages #message {
+  display: flow-root;
+  height: auto;
+  min-height: 42px;
+  margin: 0 0 8px;
+  padding: 9px 12px;
+  overflow-wrap: anywhere;
+  border: 1px solid #cbdde8;
+  border-radius: 8px;
+  background: #f1f7fa;
+  color: #244457;
+  font-size: 14px;
+  line-height: 1.5;
+}
+html.graphonline-editor #editorMessages #message select,
+html.graphonline-editor #editorMessages #message input,
+html.graphonline-editor #editorMessages #message button {
+  max-width: 100%;
+}
+@media only screen and (max-width: 650px) {
+  html.graphonline-editor #mainContainer {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  html.graphonline-editor #editorMessages #message {
+    min-height: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
 html.graphonline-editor.graphonline-panels-hidden #navigation,
 html.graphonline-editor.graphonline-panels-hidden #editorToolbar,
 html.graphonline-editor.graphonline-panels-hidden #editorMessages {

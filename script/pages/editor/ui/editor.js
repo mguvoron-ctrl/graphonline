@@ -481,7 +481,7 @@ Editor.prototype.initButtonActions = function()
         panelsButton.title = GraphOnline.translate(hidden ? "showPanels" : "hidePanels");
         panelsButton.setAttribute("aria-label", panelsButton.title);
         panelsButton.setAttribute("aria-expanded", String(!hidden));
-        document.getElementById("TogglePanelsLabel").textContent = panelsButton.title;
+        document.getElementById("TogglePanelsLabel").textContent = GraphOnline.translate(hidden ? "tools" : "panels");
         document.getElementById("TogglePanelsIcon").className = hidden ? "bi bi-chevron-down" : "bi bi-chevron-up";
     };
     updatePanelsButton();
